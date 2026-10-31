@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "vite --configLoader runner",
     "build": "tsc -b && vite build --configLoader runner",
-    "preview": "vite preview",
+    "preview": "vite preview --configLoader runner",
     "desktop:dev": "concurrently -k \"vite --configLoader runner --host 127.0.0.1\" \"wait-on http://127.0.0.1:5173 && electron .\"",
     "dist:win": "npm run build && electron-builder --win nsis"
   },
