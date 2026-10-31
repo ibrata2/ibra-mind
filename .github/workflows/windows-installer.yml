@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build-windows:
@@ -23,9 +23,18 @@ jobs:
         run: npm ci
       - name: Build Windows installer
         run: npm run dist:win
-      - name: Upload installer
-        uses: actions/upload-artifact@v4
-        with:
-          name: IBRA-MIND-Windows-Installer
-          path: release/*.exe
-          if-no-files-found: error
+      - name: Publish installer to GitHub Releases
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
+          $tag = "v$version"
+          $installer = "release/IBRA MIND Setup $version.exe"
+          gh release view $tag --json tagName | Out-Null
+          if ($LASTEXITCODE -eq 0) {
+            gh release upload $tag $installer --clobber
+          } else {
+            gh release create $tag $installer --title "IBRA MIND v$version" --notes "Windows x64 installer for IBRA MIND. See the repository README for current features and limitations." --latest --target $env:GITHUB_SHA
+          }
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
