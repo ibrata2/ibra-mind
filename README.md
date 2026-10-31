@@ -4,7 +4,7 @@
 
 Programmed & Developed by **Ibrahim Al-Khazraji** · Copyright © 2026 Ibrahim Al-Khazraji. All Rights Reserved.
 
-IBRA MIND is being developed in phases. This repository contains the Phase 1 foundation: an Arabic RTL dashboard and a Vite/React/TypeScript project shell. Features are added phase by phase; cards clearly indicate when an editor is not available yet.
+IBRA MIND is being developed in phases. The current release includes an Arabic RTL dashboard and a working local mind map editor with editable topics, connections, zoom, minimap, keyboard shortcuts, autosave, undo/redo for structural edits, and JSON export. Flowcharts, AI, cloud services and other areas are planned phases and are not presented as finished features.
 
 ## Requirements
 
@@ -25,11 +25,25 @@ npm run build
 npm run preview
 ```
 
+Run the desktop app during development:
+
+```bash
+npm run desktop:dev
+```
+
+Build a Windows x64 installer (NSIS):
+
+```bash
+npm run dist:win
+```
+
+The installer is written to `release/`. GitHub Actions also builds it on pushes to `main`; download the `IBRA-MIND-Windows-Installer` artifact from the workflow run. The initial installer is unsigned, so Windows may show its standard publisher verification prompt.
+
 ## Development roadmap
 
-1. Project setup, design system, dashboard (current)
-2. Mind map engine
-3. Nodes, edges, editor tools
+1. Project setup, design system, dashboard (implemented)
+2. Mind map engine and canvas (initial slice implemented)
+3. Rich node and edge tools
 4. Automatic layout and outline mode
 5. Local storage and autosave
 6. Export and printing
@@ -41,7 +55,7 @@ npm run preview
 12. Audio and YouTube integration
 13. Accounts and cloud sync
 14. Collaboration
-15. Quality assurance, optimization, Windows packaging
+15. Quality assurance, optimization, Windows packaging (build configuration added)
 
 ## Security and configuration
 
