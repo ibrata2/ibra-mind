@@ -8,27 +8,47 @@ import { ArrowRight, ChevronRight, CircleHelp, Download, Home, Plus, Redo2, Save
 type MindData = { label: string; onLabelChange: (id: string, value: string) => void };
 type MindNodeType = Node<MindData, 'mind'>;
 type Snapshot = { nodes: MindNodeType[]; edges: Edge[] };
-const STORE_KEY = 'ibra-mind-map-v1';
+const STORE_KEY = 'ibra-mind-map-v2';
 
 function TopicNode({ id, data, selected }: NodeProps<MindNodeType>) {
-  return <div className={`mind-node ${selected ? 'is-selected' : ''}`}>
+  return <div className={`mind-node ${id === 'root' ? 'mind-node-root' : ''} ${selected ? 'is-selected' : ''}`}>
     <input aria-label="عنوان الفرع" value={data.label} onChange={(event) => data.onLabelChange(id, event.target.value)} />
   </div>;
 }
 
 const initialNodes: MindNodeType[] = [
-  { id: 'root', type: 'mind', position: { x: 0, y: 0 }, data: { label: 'فكرتي الجديدة', onLabelChange: () => undefined } },
-  { id: 'branch-1', type: 'mind', position: { x: -285, y: -120 }, data: { label: 'الموضوع الأول', onLabelChange: () => undefined } },
-  { id: 'branch-2', type: 'mind', position: { x: 285, y: 120 }, data: { label: 'الموضوع الثاني', onLabelChange: () => undefined } },
+  { id: 'root', type: 'mind', position: { x: 0, y: 0 }, data: { label: 'IBRA MIND', onLabelChange: () => undefined } },
+  { id: 'vision', type: 'mind', position: { x: -315, y: -170 }, data: { label: 'الرؤية والهدف', onLabelChange: () => undefined } },
+  { id: 'features', type: 'mind', position: { x: 315, y: -170 }, data: { label: 'الميزات الأساسية', onLabelChange: () => undefined } },
+  { id: 'experience', type: 'mind', position: { x: -315, y: 170 }, data: { label: 'تجربة الاستخدام', onLabelChange: () => undefined } },
+  { id: 'roadmap', type: 'mind', position: { x: 315, y: 170 }, data: { label: 'خطة التطوير', onLabelChange: () => undefined } },
+  { id: 'vision-1', type: 'mind', position: { x: -585, y: -235 }, data: { label: 'تنظيم الأفكار', onLabelChange: () => undefined } },
+  { id: 'vision-2', type: 'mind', position: { x: -585, y: -105 }, data: { label: 'تحويل المعرفة', onLabelChange: () => undefined } },
+  { id: 'features-1', type: 'mind', position: { x: 585, y: -235 }, data: { label: 'خرائط ذهنية', onLabelChange: () => undefined } },
+  { id: 'features-2', type: 'mind', position: { x: 585, y: -105 }, data: { label: 'لوحة ومخططات', onLabelChange: () => undefined } },
+  { id: 'experience-1', type: 'mind', position: { x: -585, y: 105 }, data: { label: 'العربية و RTL', onLabelChange: () => undefined } },
+  { id: 'experience-2', type: 'mind', position: { x: -585, y: 235 }, data: { label: 'عمل محلي', onLabelChange: () => undefined } },
+  { id: 'roadmap-1', type: 'mind', position: { x: 585, y: 105 }, data: { label: 'الحفظ والتصدير', onLabelChange: () => undefined } },
+  { id: 'roadmap-2', type: 'mind', position: { x: 585, y: 235 }, data: { label: 'الذكاء الاصطناعي', onLabelChange: () => undefined } },
 ];
 const initialEdges: Edge[] = [
-  { id: 'root-1', source: 'root', target: 'branch-1', type: 'smoothstep' },
-  { id: 'root-2', source: 'root', target: 'branch-2', type: 'smoothstep' },
+  { id: 'root-vision', source: 'root', target: 'vision', type: 'smoothstep' },
+  { id: 'root-features', source: 'root', target: 'features', type: 'smoothstep' },
+  { id: 'root-experience', source: 'root', target: 'experience', type: 'smoothstep' },
+  { id: 'root-roadmap', source: 'root', target: 'roadmap', type: 'smoothstep' },
+  { id: 'vision-1', source: 'vision', target: 'vision-1', type: 'smoothstep' },
+  { id: 'vision-2', source: 'vision', target: 'vision-2', type: 'smoothstep' },
+  { id: 'features-1', source: 'features', target: 'features-1', type: 'smoothstep' },
+  { id: 'features-2', source: 'features', target: 'features-2', type: 'smoothstep' },
+  { id: 'experience-1', source: 'experience', target: 'experience-1', type: 'smoothstep' },
+  { id: 'experience-2', source: 'experience', target: 'experience-2', type: 'smoothstep' },
+  { id: 'roadmap-1', source: 'roadmap', target: 'roadmap-1', type: 'smoothstep' },
+  { id: 'roadmap-2', source: 'roadmap', target: 'roadmap-2', type: 'smoothstep' },
 ];
 
 function readSaved(): Snapshot {
   try {
-    const raw = localStorage.getItem(STORE_KEY);
+    const raw = localStorage.getItem(STORE_KEY) ?? localStorage.getItem('ibra-mind-map-v1');
     if (!raw) return { nodes: initialNodes, edges: initialEdges };
     const saved = JSON.parse(raw) as Snapshot;
     return saved.nodes?.length ? saved : { nodes: initialNodes, edges: initialEdges };
@@ -151,7 +171,8 @@ export default function MindMapEditor({ onHome }: { onHome: () => void }) {
   return <main className="editor-shell" ref={flowRef}>
     <header className="editor-topbar"><button className="editor-brand" onClick={onHome}><span className="brand-mark"><ArrowRight size={18}/></span><span>IBRA <b>MIND</b></span></button><div className="editor-title"><small>خريطتي الذهنية</small><b>فكرتي الجديدة</b></div><div className="editor-save"><Save size={15}/>{savedAt ? `حُفظ تلقائياً · ${savedAt}` : 'حفظ تلقائي مفعّل'}</div><button className="editor-button subtle" onClick={exportMap}><Download size={15}/> تصدير JSON</button><button className="editor-button subtle" onClick={onHome}><Home size={15}/> الرئيسية</button></header>
     <div className="editor-toolbar"><button className="editor-button primary" onClick={addTopic}><Plus size={16}/> إضافة فرع <kbd>Tab</kbd></button><button className="editor-button" onClick={removeSelected} disabled={!selectedId || selectedId === 'root'}><Trash2 size={15}/> حذف</button><span className="toolbar-divider"/><button className="editor-icon-button" aria-label="تراجع" onClick={() => restoreHistory(-1)}><Undo2 size={17}/></button><button className="editor-icon-button" aria-label="إعادة" onClick={() => restoreHistory(1)}><Redo2 size={17}/></button><span className="editor-help"><CircleHelp size={15}/> اختر عقدة ثم أضف فرعاً. اسحب العقد لترتيبها.</span></div>
-    <section className="canvas-wrap" aria-label="لوحة الخريطة الذهنية"><ReactFlow nodes={nodes} edges={edges} nodeTypes={nodeTypes} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} onConnect={connect} onNodeClick={(_, node) => setSelectedId(node.id)} onPaneClick={() => setSelectedId(null)} onNodeDragStop={(_, __, movedNodes) => checkpoint(withCallbacks(movedNodes), edges)} fitView fitViewOptions={{ padding: 0.3 }} minZoom={0.2} maxZoom={2.2} proOptions={{ hideAttribution: true }}><Background color="#343746" gap={24} size={1}/><Controls position="bottom-left"/><MiniMap position="bottom-right" zoomable pannable nodeColor="#8d79ee"/></ReactFlow></section>
+    <section className="canvas-wrap" aria-label="لوحة الخريطة الذهنية"><ReactFlow nodes={nodes} edges={edges} nodeTypes={nodeTypes} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} onConnect={connect} onNodeClick={(_, node) => setSelectedId(node.id)} onPaneClick={() => setSelectedId(null)} onNodeDragStop={(_, __, movedNodes) => checkpoint(withCallbacks(movedNodes), edges)} fitView fitViewOptions={{ padding: 0.3 }} minZoom={0.2} maxZoom={2.2} proOptions={{ hideAttribution: true }}><Background color="#dbe0ec" gap={24} size={1}/><Controls position="bottom-left"/><MiniMap position="bottom-right" zoomable pannable nodeColor="#8d79ee"/></ReactFlow></section>
     <footer className="editor-footer"><span>{nodes.length} عقدة · {edges.length} اتصال</span><span>Tab إضافة فرع · Delete حذف · Ctrl+Z تراجع</span></footer>
   </main>;
 }
+

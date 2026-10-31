@@ -4,7 +4,7 @@
 
 Programmed & Developed by **Ibrahim Al-Khazraji** · Copyright © 2026 Ibrahim Al-Khazraji. All Rights Reserved.
 
-IBRA MIND is being developed in phases. The current release includes an Arabic RTL dashboard and a working local mind map editor with editable topics, connections, zoom, minimap, keyboard shortcuts, autosave, undo/redo for structural edits, and JSON export. Flowcharts, AI, cloud services and other areas are planned phases and are not presented as finished features.
+IBRA MIND is being developed in phases. The current release includes an Arabic RTL dashboard and a working local mind map editor with editable topics, connections, zoom, minimap, keyboard shortcuts, autosave, undo/redo for structural edits, and JSON export. The Windows build loads assets from relative paths so the packaged `file://` app renders correctly. Flowcharts, AI, cloud services and other areas remain planned phases.
 
 ## Requirements
 
@@ -37,7 +37,7 @@ Build a Windows x64 installer (NSIS):
 npm run dist:win
 ```
 
-The installer is written to `release/`. GitHub Actions also builds it on pushes to `main`; download the `IBRA-MIND-Windows-Installer` artifact from the workflow run. The initial installer is unsigned, so Windows may show its standard publisher verification prompt.
+The installer is written to `release/`. GitHub Actions builds it on pushes to `main` and publishes it to the repository's GitHub Releases page. The installer is unsigned, so Windows may show its standard publisher verification prompt.
 
 ## Development roadmap
 
@@ -55,7 +55,7 @@ The installer is written to `release/`. GitHub Actions also builds it on pushes 
 12. Audio and YouTube integration
 13. Accounts and cloud sync
 14. Collaboration
-15. Quality assurance, optimization, Windows packaging (build configuration added)
+15. Quality assurance, optimization, Windows packaging (unsigned installer published)
 
 ## Security and configuration
 
@@ -68,3 +68,4 @@ No API credentials are bundled. AI providers will be added with secure key stora
 - Telegram: https://t.me/ibraprogram
 - TikTok: @ibraprogram
 - Copyright © 2026 Ibrahim Al-Khazraji. All Rights Reserved.
+

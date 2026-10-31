@@ -1,4 +1,4 @@
-# IBRA MIND — Phase 1/2 architecture
+# IBRA MIND — Phase 1/2/3 architecture
 
 ## Product scope
 
@@ -8,7 +8,7 @@ IBRA MIND is an original visual thinking application based on the supplied maste
 
 - React + TypeScript + Vite: shared web interface and production build.
 - `@xyflow/react`: interactive canvas, nodes, connections, zoom, minimap.
-- Electron: Windows desktop shell using the same built web UI.
+- Electron: Windows desktop shell using the same built web UI. Vite uses `base: './'` so the app loads its bundle from `file://` after packaging.
 - Browser local storage for the first autosave implementation. IndexedDB migration remains a later storage phase.
 - GitHub Actions + electron-builder NSIS: reproducible Windows installer build.
 
@@ -23,7 +23,8 @@ The Electron renderer has Node integration disabled, context isolation enabled a
 ## Build order
 
 1. Dashboard and shared design foundation — implemented.
-2. Mind map editing, node links and canvas controls — current slice.
+2. Mind map editing, node links and canvas controls — implemented initial slice.
+3. Light design system and readable canvas — implemented in this pass.
 3. Rich node and edge tools, keyboard editing.
 4. Layouts and outline conversion.
 5. IndexedDB, autosave recovery and local project library.
@@ -32,4 +33,5 @@ The Electron renderer has Node integration disabled, context isolation enabled a
 
 ## Known limits
 
-Current storage is per-browser profile and limited to one active map. JSON export is available; import, history across restarts, cloud sync, secure AI provider management and signing the Windows installer are not implemented yet.
+Current storage is per-browser profile and limited to one active map. JSON export is available; import, history across restarts, cloud sync, secure AI provider management and signing the Windows installer are not implemented yet. The v0.3.0 Windows build must be verified against the blank-screen regression before IM-001 is marked closed.
+

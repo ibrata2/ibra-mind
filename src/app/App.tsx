@@ -33,8 +33,9 @@ export default function App() {
         <div className="tabs">{['الكل','الأخيرة','المفضلة','مشتركة'].map(x=><button onClick={()=>setTab(x)} className={tab===x?'selected':''} key={x}>{x}</button>)}</div>
         <div className="project-grid">{projects.map((p,i)=><article className="project-card" key={p.title}><div className={`project-preview ${p.color}`}><div className="preview-toolbar"><span/><span/><span/></div><div className="preview-map"><div className="map-root">{p.icon} {i===0?'الذكاء الاصطناعي':i===1?'إطلاق المنتج':'البرمجة'}</div><div className="map-branch left-branch">التخطيط</div><div className="map-branch right-branch">الأفكار</div><i className="connector c1"/><i className="connector c2"/></div><button className="project-more"><MoreHorizontal size={17}/></button></div><div className="project-info"><div className={`file-icon ${p.color}`}><FileText size={17}/></div><div><b>{p.title}</b><small>{p.type} · {p.date}</small></div><Star size={16} className="project-star"/></div></article>)}</div>
         <div className="empty-hint"><span>✧</span><div><b>أفكارك تستحق مساحة أكبر</b><p>ابدأ بخريطة ذهنية جديدة أو استكشف قوالب جاهزة لمشروعك التالي.</p></div><button onClick={()=>setNotice('مكتبة القوالب قيد التخطيط')}>استكشف القوالب <ArrowUpLeft size={14}/></button></div>
-        <footer><span>IBRA MIND · الإصدار 0.1.0</span><span>برمجة وتطوير <b>إبراهيم الخزرجي</b> · © 2026</span></footer>
+        <footer><span>IBRA MIND · الإصدار 0.3.0</span><span>برمجة وتطوير <b>إبراهيم الخزرجي</b> · © 2026</span></footer>
       </div>
     </section>{notice&&<div className="toast" role="status">{notice}<button onClick={()=>setNotice('')}>حسناً</button></div>}
   </main>;
 }
+

@@ -1,4 +1,4 @@
-const { app, BrowserWindow } = require('electron');
+const { app, BrowserWindow, Menu } = require('electron');
 const path = require('node:path');
 
 function createWindow() {
@@ -8,7 +8,8 @@ function createWindow() {
     minWidth: 900,
     minHeight: 640,
     title: 'IBRA MIND',
-    backgroundColor: '#10131b',
+    backgroundColor: '#f4f6fb',
+    autoHideMenuBar: true,
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,
@@ -24,6 +25,7 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
+  Menu.setApplicationMenu(null);
   createWindow();
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
@@ -33,3 +35,4 @@ app.whenReady().then(() => {
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
 });
+

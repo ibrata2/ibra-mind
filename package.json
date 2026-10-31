@@ -4,7 +4,7 @@
   "description": "IBRA MIND – AI Mind Mapping & Visual Thinking Studio",
   "author": "Ibrahim Al-Khazraji",
   "copyright": "Copyright © 2026 Ibrahim Al-Khazraji. All Rights Reserved.",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "type": "module",
   "main": "desktop/main.cjs",
   "scripts": {
@@ -32,3 +32,4 @@
     }
   }
 }
+
