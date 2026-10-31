@@ -5,10 +5,10 @@
   "type": "module",
   "main": "desktop/main.cjs",
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --configLoader runner",
     "build": "tsc -b && vite build --configLoader runner",
     "preview": "vite preview",
-    "desktop:dev": "concurrently -k \"vite --host 127.0.0.1\" \"wait-on http://127.0.0.1:5173 && electron .\"",
+    "desktop:dev": "concurrently -k \"vite --configLoader runner --host 127.0.0.1\" \"wait-on http://127.0.0.1:5173 && electron .\"",
     "dist:win": "npm run build && electron-builder --win nsis"
   },
   "dependencies": { "@xyflow/react": "^12.8.5", "framer-motion": "^12.23.12", "lucide-react": "^0.468.0", "react": "^19.1.1", "react-dom": "^19.1.1", "zustand": "^5.0.8" },
