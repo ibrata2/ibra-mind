@@ -1,0 +1,63 @@
+const assert = require('node:assert/strict');
+const fs = require('node:fs/promises');
+const path = require('node:path');
+const os = require('node:os');
+const { createProviderService } = require('../desktop/provider-service.cjs');
+
+(async () => {
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'ibra-provider-'));
+  const handlers = new Map();
+  const ipcMain = { handle: (name, callback) => handlers.set(name, callback) };
+  const safeStorage = { isEncryptionAvailable: () => true, encryptString: (value) => Buffer.from(value), decryptString: (value) => value.toString() };
+  createProviderService({ app: { getPath: () => directory }, ipcMain, safeStorage });
+  const save = await handlers.get('providers:save')({}, { id: 'smoke', name: 'Local test', baseUrl: 'https://example.test/v1', model: 'test-model', apiKey: 'test-secret', customHeaders: '{"x-client":"ibra-smoke"}', isDefault: true, temperature: 0 });
+  assert.equal(save.ok, true);
+  const listed = await handlers.get('providers:list')();
+  assert.equal(listed.providers[0].hasApiKey, true);
+  assert.equal(JSON.stringify(listed).includes('test-secret'), false);
+  assert.equal(JSON.stringify(listed).includes('encryptedApiKey'), false);
+  assert.equal(JSON.stringify(listed).includes('ibra-smoke'), false);
+  assert.equal(listed.providers[0].hasCustomHeaders, true);
+  const rejectedHeader = await handlers.get('providers:save')({}, { id: 'bad', name: 'Bad', baseUrl: 'https://example.test/v1', model: 'm', customHeaders: '{"Authorization":"wrong"}' });
+  assert.equal(rejectedHeader.ok, false);
+  global.fetch = async (_url, options) => {
+    assert.equal(options.headers.authorization, 'Bearer test-secret');
+    assert.equal(options.headers['x-client'], 'ibra-smoke');
+    return new Response(JSON.stringify({ data: [{ id: 'model-a' }, { id: 'model-b' }] }), { status: 200 });
+  };
+  const models = await handlers.get('providers:models')({}, 'smoke');
+  assert.deepEqual(models.models, ['model-a', 'model-b']);
+  global.fetch = async () => new Response(JSON.stringify({ message: 'echo test-secret ibra-smoke' }), { status: 401 });
+  const failedTest = await handlers.get('providers:test')({}, 'smoke');
+  assert.equal(failedTest.ok, false);
+  assert.equal(failedTest.error.includes('test-secret'), false);
+  assert.equal(failedTest.error.includes('ibra-smoke'), false);
+  const afterFailedTest = await handlers.get('providers:list')();
+  assert.equal(afterFailedTest.providers[0].errorCount, 1);
+  assert.equal(afterFailedTest.providers[0].lastError.includes('ibra-smoke'), false);
+  global.fetch = async (_url, options) => {
+    const body = JSON.parse(options.body);
+    assert.equal(body.temperature, 0);
+    assert.equal(options.headers['x-client'], 'ibra-smoke');
+    return new Response(JSON.stringify({ choices: [{ message: { content: 'OK' } }], usage: { total_tokens: 9 } }), { status: 200 });
+  };
+  const result = await handlers.get('providers:complete')({}, { providerId: 'smoke', messages: [{ role: 'user', content: 'hello' }] });
+  assert.equal(result.ok, true);
+  assert.equal(result.text, 'OK');
+  const after = await handlers.get('providers:list')();
+  assert.equal(after.providers[0].requestCount, 1);
+  assert.equal(after.providers[0].totalTokens, 9);
+  global.fetch = async (_url, options) => {
+    assert.equal(options.body.get('model'), 'test-model');
+    assert.equal(options.body.get('response_format'), 'verbose_json');
+    return new Response(JSON.stringify({ text: 'صوت تجريبي', segments: [{ start: 0, end: 2, text: 'صوت تجريبي' }] }), { status: 200 });
+  };
+  const transcription = await handlers.get('providers:transcribe')({}, { providerId: 'smoke', fileName: 'test.mp3', mimeType: 'audio/mpeg', base64: Buffer.from('audio').toString('base64') });
+  assert.equal(transcription.ok, true);
+  assert.equal(transcription.text, 'صوت تجريبي');
+  assert.equal(transcription.segments[0].start, 0);
+  const afterAudio = await handlers.get('providers:list')();
+  assert.equal(afterAudio.providers[0].requestCount, 2);
+  await fs.rm(directory, { recursive: true, force: true });
+  process.stdout.write('Provider service smoke checks passed.\n');
+})().catch((error) => { console.error(error); process.exitCode = 1; });

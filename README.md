@@ -4,68 +4,57 @@
 
 Programmed & Developed by **Ibrahim Al-Khazraji** · Copyright © 2026 Ibrahim Al-Khazraji. All Rights Reserved.
 
-IBRA MIND is being developed in phases. The current release includes an Arabic RTL dashboard and a working local mind map editor with editable topics, connections, zoom, minimap, keyboard shortcuts, autosave, undo/redo for structural edits, and JSON export. The Windows build loads assets from relative paths so the packaged `file://` app renders correctly. Flowcharts, AI, cloud services and other areas remain planned phases.
+IBRA MIND is an Arabic-first desktop and web visual thinking application. It currently provides persistent local projects, a mind map editor, flowchart editor, whiteboard, and a Windows-secured AI provider manager with mind-map generation. The full product specification also calls for document, media, cloud, collaboration, and account features; these are not represented as complete until their real processing and storage paths are implemented.
 
-## Requirements
+## Install and run from source
 
 - Node.js 20.19+ or 22.12+
 - npm 10+
-
-## Install and run
 
 ```bash
 npm install
 npm run dev
 ```
 
-Create a production web build:
+Build the web app with `npm run build`, preview it with `npm run preview`, or run the Windows desktop development shell with `npm run desktop:dev`.
 
-```bash
-npm run build
-npm run preview
-```
+Build a Windows x64 NSIS installer with `npm run dist:win`. The installer is unsigned and Windows may show its publisher warning. GitHub Actions publishes installer assets under **Releases** when a release build is triggered; Actions artifacts are temporary build outputs, not the public download location.
 
-Run the desktop app during development:
+## Current working capabilities
 
-```bash
-npm run desktop:dev
-```
+- Local dashboard with project creation, recent/favorite filters, search, grid/list views, and delete/rename.
+- Mind map: editable and connectable nodes, child/sibling creation, copy/cut/paste/duplicate, undo/redo, keyboard shortcuts, drag placement, auto layout, outline mode, collapse/expand, node shapes/colors/task completion, IndexedDB autosave, JSON import/export, Markdown export, and print.
+- Flowcharts: connected shapes, text editing, connect, auto layout, delete, JSON export, and IndexedDB autosave.
+- Whiteboards: text, notes, shapes, image insertion, connectors, multi-select, resize, group/ungroup, lock, layer order, JSON export, and IndexedDB autosave.
+- AI provider configuration in the Windows app: encrypted API key and custom-header storage through Windows safe storage; OpenAI-compatible protocol presets for OpenAI, DeepSeek, OpenRouter, Groq, Mistral and Ollama plus native Gemini/Anthropic protocols; model discovery where the provider exposes it, connection tests, usage/error counts, task routing, and validated AI mind map generation.
+- Document-to-map extraction for PDFs, DOCX, PPTX, XLSX, TXT, Markdown and CSV; text is extracted locally, size-limited, chunked for AI analysis, and the final map is schema-validated. Up to 10 image-only PDF pages are rendered locally and OCR-read by the selected vision model; their images are sent to the user's provider and count toward its usage.
+- Image-to-map requests for PNG, JPEG, WEBP and GIF through a configured vision-capable provider; images are size-limited and sent only after the user starts analysis.
+- Audio file upload and microphone recording with OpenAI-compatible transcription, timestamps when returned by the provider, and transcript-to-map conversion. It needs an enabled transcription endpoint/model and a separate map-generation model if the speech model does not support chat completion.
+- Twelve editable mind-map templates across education, business, marketing, programming, project planning, personal planning, medical education, engineering, science, history, brainstorming and organization; users can filter, search and favorite them locally.
+- Mind map export to Arabic-aware SVG, high-resolution PNG, tiled multi-page PDF, selected-branch SVG/PNG/PDF, JSON and Markdown, plus browser printing. Large raster maps are capped to keep memory use bounded.
+- YouTube transcript-to-map flow validates video links and accepts pasted captions or VTT/SRT/TXT subtitle files. It cannot fetch a transcript that YouTube has not made accessible to the user.
+- English/Arabic interface foundations, Arabic RTL, application identity, and an Electron Windows installer workflow.
+- Optional Supabase accounts: email/password sign-up and sign-in, password recovery, manual cloud backup and restore, and project restore points. Cloud access requires the owner's Supabase project and the supplied row-security migration. The app must only receive a public/publishable key; never use a service-role key in the app.
 
-Build a Windows x64 installer (NSIS):
+## Security notes
 
-```bash
-npm run dist:win
-```
+Provider credentials are kept by the Electron main process and encrypted through Electron `safeStorage`; they are not returned to the React renderer. The web build deliberately cannot save provider secrets without a backend. Requests to external APIs require the user's own provider key and send the selected prompt, document text, or image to that provider. No API credentials are included in this repository.
 
-The installer is written to `release/`. GitHub Actions builds it on pushes to `main` and publishes it to the repository's GitHub Releases page. The installer is unsigned, so Windows may show its standard publisher verification prompt.
+## Enable cloud accounts and backups
 
-## Development roadmap
+1. Create a Supabase project and run [`supabase/migrations/001_cloud_projects.sql`](supabase/migrations/001_cloud_projects.sql) in its SQL Editor. It creates project and history tables with owner-only row policies.
+2. Open **Settings → الحساب والسحابة** and enter the project URL and its public/publishable key. These client connection settings are stored on this device.
+3. Create an account or sign in, choose a local project, then select **رفع وحفظ نسخة**. Restoring a cloud item creates a new local copy; it does not silently overwrite a local file.
 
-1. Project setup, design system, dashboard (implemented)
-2. Mind map engine and canvas (initial slice implemented)
-3. Rich node and edge tools
-4. Automatic layout and outline mode
-5. Local storage and autosave
-6. Export and printing
-7. Flowchart editor
-8. Whiteboard
-9. AI provider manager
-10. AI mind map generation
-11. Document, PDF, and image analysis
-12. Audio and YouTube integration
-13. Accounts and cloud sync
-14. Collaboration
-15. Quality assurance, optimization, Windows packaging (unsigned installer published)
+For Windows email confirmation and password reset, add `ibramind://auth` to the Supabase Auth allowed redirect URLs. For web, also add that web deployment's origin. The Windows app registers this link with the operating system and completes the returned session in the application. OAuth, background sync, conflict resolution, profile avatars and live collaboration are still unfinished.
 
-## Security and configuration
+## Product identity
 
-No API credentials are bundled. AI providers will be added with secure key storage and backend mediation in the relevant phases. Never commit secrets; `.env.example` documents safe non-secret configuration only.
-
-## Project identity
-
-- Application: IBRA MIND – AI Mind Mapping & Visual Thinking Studio
 - Developer: Ibrahim Al-Khazraji
 - Telegram: https://t.me/ibraprogram
 - TikTok: @ibraprogram
 - Copyright © 2026 Ibrahim Al-Khazraji. All Rights Reserved.
 
+## Development records
+
+See `replica/features.csv` for the current feature matrix, `replica/build-log.md` for implementation and verification notes, `replica/architecture.md` for the application structure, and `replica/test-plan.md` for manual regression flows.

@@ -11,4 +11,3 @@
   PASS   5.17:1  border-input             on surface              ui
 
   11 pairs, 0 failing AA
-

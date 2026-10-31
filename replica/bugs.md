@@ -1,8 +1,8 @@
-# IBRA MIND bug log — v0.3.0
+# IBRA MIND bug log — v0.4.0
 
 ## IM-001 — S1 — Windows app window is blank
 
-- **Status:** Fixed in v0.3.0; replacement Windows build pending.
+- **Status:** The blank-screen cause was fixed in the source at v0.3.0; verify the v0.4.0 Windows installer before closing the regression.
 - **Reproduction:** Install v0.2.0 on Windows 10/11 and start IBRA MIND.
 - **Expected:** Arabic dashboard appears in the Electron window.
 - **Actual:** Native title/menu bar appears, but the client area is entirely blank and dark.
@@ -13,7 +13,7 @@
 
 ## IM-002 — S3 — Dark dashboard and editor reduce legibility
 
-- **Status:** Fixed in v0.3.0 design pass; verify the Windows build.
+- **Status:** Light dashboard design added in v0.3.0; editor intentionally uses dark canvas chrome. Review v0.4.0 on Windows before closing.
 - **Expected:** Readable Arabic interface, clear focus states, visible canvas grid.
 - **Actual:** Nearly black surfaces, muted labels and dark canvas made the app appear unfinished.
 - **Fix:** Light design tokens, higher contrast, light canvas/nodes and a richer starter map.
@@ -23,4 +23,3 @@
 - Confirm the installer opens the dashboard on a clean Windows profile and on upgrade from v0.2.0.
 - Confirm local storage migrates from the prior map key without losing saved map data.
 - Test native Windows window resize and keyboard shortcuts.
-

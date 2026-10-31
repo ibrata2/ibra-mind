@@ -3,6 +3,7 @@ name: Windows installer
 on:
   push:
     branches: [main]
+    tags: ['v*']
   workflow_dispatch:
 
 permissions:
@@ -21,9 +22,19 @@ jobs:
           cache: npm
       - name: Install dependencies
         run: npm ci
+      - name: Run provider and security smoke checks
+        run: npm run test:smoke
       - name: Build Windows installer
         run: npm run dist:win
-      - name: Publish installer to GitHub Releases
+      - name: Save installer for review
+        uses: actions/upload-artifact@v4
+        with:
+          name: IBRA-MIND-Windows-Installer
+          path: release/*.exe
+          if-no-files-found: error
+          retention-days: 30
+      - name: Publish tagged installer to GitHub Releases
+        if: startsWith(github.ref, 'refs/tags/v')
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}

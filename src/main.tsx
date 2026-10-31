@@ -4,7 +4,7 @@ import '@xyflow/react/dist/style.css';
 import './styles.css';
 import '../replica/design/tokens.css';
 import './theme.css';
+import './extended.css';
 import App from './app/App';
 
 createRoot(document.getElementById('root')!).render(<React.StrictMode><App /></React.StrictMode>);
-

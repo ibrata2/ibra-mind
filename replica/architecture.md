@@ -1,37 +1,28 @@
-# IBRA MIND — Phase 1/2/3 architecture
+# IBRA MIND architecture
 
-## Product scope
+## Runtime
 
-IBRA MIND is an original visual thinking application based on the supplied master specification. Development is phased; the current vertical slice is a local mind map that can be edited, connected, saved, and exported.
+- React 19, TypeScript, Vite, and React Flow power the shared Arabic/English web UI.
+- Electron 45 runs the same UI in a sandboxed Windows shell. Provider credentials stay in the main process, encrypted using Electron `safeStorage`.
+- Local project metadata is stored in browser local storage; project documents use IndexedDB with migration from earlier local-storage documents.
+- Supabase JS is an optional client integration for accounts and manual cloud backup. The user's public/publishable key is client-side; the included SQL migration enables RLS ownership rules. No service-role key is used.
+- GitHub Actions builds a Windows x64 NSIS installer artifact for main pushes. Version tags publish release assets.
 
-## Stack
+## Module map
 
-- React + TypeScript + Vite: shared web interface and production build.
-- `@xyflow/react`: interactive canvas, nodes, connections, zoom, minimap.
-- Electron: Windows desktop shell using the same built web UI. Vite uses `base: './'` so the app loads its bundle from `file://` after packaging.
-- Browser local storage for the first autosave implementation. IndexedDB migration remains a later storage phase.
-- GitHub Actions + electron-builder NSIS: reproducible Windows installer build.
+- `src/app`: dashboard, navigation, settings, local project creation and feature routing.
+- `src/features/mindmap`: interactive graph editor, history, import/export and vector/raster export.
+- `src/features/flowchart`, `whiteboard`: graph-based visual editors.
+- `src/features/ai`, `desktop`: provider protocols, credential IPC, model calls and generation.
+- `src/features/documents`, `video`, `templates`: extraction and user-provided media analysis, plus local templates.
+- `src/features/cloud`: Supabase client, authentication, manual sync and restore history.
+- `src/features/projects`, `storage`: local metadata and IndexedDB document storage.
+- `supabase/migrations`: user-owned cloud data schema and row policies.
 
-## Current data model
+## Data and security
 
-Mind maps are versioned JSON documents. Each node stores an id, position, node type and label. Connections store source and target ids plus edge style. The active map autosaves to browser local storage and can be exported as JSON. No account or cloud services are required for the local vertical slice.
+Project files are JSON documents scoped to local project IDs. AI provider secrets never enter the renderer in the Windows app. Supabase access tokens are handled by the official Supabase client; database policies use `auth.uid()` to restrict project rows to the owner. A user must create their Supabase project and run the included migration. Restoring a remote project creates a distinct local copy.
 
-## Security boundaries
+## Current boundaries
 
-The Electron renderer has Node integration disabled, context isolation enabled and sandboxing enabled. No provider keys or cloud credentials are bundled. Provider APIs require a separately designed secure storage/proxy phase.
-
-## Build order
-
-1. Dashboard and shared design foundation — implemented.
-2. Mind map editing, node links and canvas controls — implemented initial slice.
-3. Light design system and readable canvas — implemented in this pass.
-3. Rich node and edge tools, keyboard editing.
-4. Layouts and outline conversion.
-5. IndexedDB, autosave recovery and local project library.
-6. Export and print formats.
-7–15. Flowchart, whiteboard, AI, file analysis, cloud, collaboration, QA and release hardening as listed in README.
-
-## Known limits
-
-Current storage is per-browser profile and limited to one active map. JSON export is available; import, history across restarts, cloud sync, secure AI provider management and signing the Windows installer are not implemented yet. The v0.3.0 Windows build must be verified against the blank-screen regression before IM-001 is marked closed.
-
+Cloud sync is manual; there is no background sync, merge strategy, live co-editing, invitations, OAuth or profile avatar flow. OCR for scanned files, automatic YouTube transcript retrieval, multi-page PDF, selected-node export, and full runtime verification on Windows still need implementation/verification. A Windows installer has not been built for the current local tree.

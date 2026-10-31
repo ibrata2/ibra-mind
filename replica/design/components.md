@@ -36,4 +36,3 @@ The Windows screenshot exposed a fully empty Electron window. The production ass
 - Base spacing: 4px; major section gaps: 24–32px.
 - Card radius: 14–18px; compact controls: 8–12px.
 - Light workspace background, white surfaces, violet accent, green saved-state indicator.
-

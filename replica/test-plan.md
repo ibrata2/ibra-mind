@@ -1,25 +1,41 @@
-# IBRA MIND test plan — v0.3.0
+# IBRA MIND regression plan
 
-## F01 — Start Windows desktop app
+Run `npm ci`, `npm run build`, `npm run test:smoke`, and `npm audit --omit=dev` before preparing a Windows installer. Build the installer on GitHub Actions Windows runner using `npm run dist:win`; verify its artifact, install, launch, update, microphone prompt, and URI callback on a clean Windows 10/11 device.
 
-- **F01-H1:** Install the signed-off release on Windows 10/11, launch it, and verify the dashboard renders in the app window.
-- **F01-E1:** Upgrade from v0.2.0 and verify the previous local mind map is still available.
-- **F01-E2:** Launch without network; dashboard and local editor must render because no remote font is required.
-- **F01-E3:** Resize to the minimum supported desktop size; navigation, canvas and controls must remain visible.
+## Local workspace and maps
 
-## F02 — Create and edit a mind map
+- Create, rename, favorite, search, filter, open and delete local projects; confirm all three project types save independently.
+- Edit Arabic/English labels, create child/sibling branches, connect nodes, duplicate, cut, copy, paste, delete, undo, redo, collapse/expand, and arrange; reload to confirm IndexedDB restoration.
+- Change node shape, color and task state; export/import JSON and confirm metadata persists.
+- Toggle outline mode and return; confirm hierarchy and labels remain intact.
+- Export full and selected map as SVG, PNG and PDF; confirm Arabic rendering, branch selection, multiple pages for tall/wide maps and page numbering.
+- Check project export/print and browser resizing at desktop and narrow viewports.
 
-- **F02-H1:** Open the mind map, edit a label in Arabic, add a child topic with Tab, connect and move nodes, then verify autosave after reload.
-- **F02-H2:** Delete a selected branch and verify its descendants and links disappear; undo and redo the structural change.
-- **F02-E1:** Use a 60-character Arabic/English mixed label and verify wrapping and node editing.
-- **F02-E2:** Export JSON and verify the exported file includes the current nodes and edges without runtime callbacks.
-- **F02-E3:** Use the canvas with keyboard only and verify visible focus indicators.
+## Other editors and local data
 
-## Executed in this pass
+- Flowchart: add supported shapes, edit labels, connect/rearrange, save, reload, and JSON-export.
+- Whiteboard: add text/sticky/shapes/images, resize, select/group/lock/reorder, save, reload, JSON-export.
+- Close/reopen each workspace and verify its local document remains available.
 
-- Reproduced IM-001 from the user-provided screenshot.
-- Ran TypeScript and Vite production build after the path fix.
-- Verified the generated HTML uses relative asset paths (`./assets/...`).
-- Checked design token contrast: 11 color pairs, 0 AA failures.
-- Local browser click-through still required after the light theme is rebuilt; Windows installer verification remains required to close IM-001.
+## AI and media
 
+- Run provider service smoke test: encrypted-key redaction, zero temperature, request/token counters and transcription segments.
+- With user-supplied API credentials, test provider connection, generation, model routing, failures, timeout behavior, and response validation; check credentials never appear in renderer, logs or exports.
+- Extract Arabic/English fixtures for text PDF, DOCX, PPTX, XLSX, TXT/Markdown/CSV; test size limits, malformed files, OCR for scanned PDF pages (10-page cap), and chunked AI analysis.
+- Test image-to-map with vision model; test audio upload and microphone permission, transcription and transcript-to-map; test pasted/VTT/SRT YouTube captions and invalid links.
+- Test each template search/category/favorite/use flow.
+
+## Accounts and cloud
+
+- In a test-owned Supabase project, apply the included SQL migration; confirm RLS denies access to another account.
+- Test registration, confirmation through `ibramind://auth`, sign-in/out, password reset callback, manual backup, history listing, restore to separate local copy, and empty/missing-table/error handling.
+- Confirm local-only mode works with cloud settings empty. Test cloud key is public/publishable, and reject never store a service-role key.
+- Verify multi-device manual backup/restore. Background sync, conflict resolution and collaboration are not implemented, so do not test or advertise them as available.
+
+## Verification run in current workspace
+
+- `npm run build` — passed; TypeScript and Vite production build succeeded.
+- `npm run test:smoke` — passed; provider service smoke checks succeeded.
+- `npm audit --omit=dev` — passed; no production dependency vulnerabilities.
+- Browser walkthrough — dashboard, local map load/autosave, Arabic node selection, cloud settings render, PDF export (map tiled across A4 pages), and selected-branch SVG export passed.
+- Live Supabase auth/RLS and Windows packaging/runtime remain unverified because no Supabase project credentials and no working local Electron runtime are available. GitHub Windows artifact must be checked before public release.
