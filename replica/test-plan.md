@@ -54,3 +54,5 @@ Run `npm ci`, `npm run build`, `npm run test:smoke`, `npm run test:captions`, an
 
 - Cloud conflict handling is implemented but not yet run against Supabase. Run the two-session conflict, stale RPC, and snapshot-history scenario above after applying the migration.
 
+- GitHub Actions run 41299809303 passed provider/security smoke checks and Windows packaged-dashboard rendering after the cloud conflict changes; it does not exercise Supabase behavior.
+
