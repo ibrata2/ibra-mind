@@ -1,4 +1,4 @@
-export type ProviderProtocol = 'openai-compatible' | 'gemini' | 'anthropic';
+export type ProviderProtocol = 'openai-compatible' | 'gemini' | 'anthropic' | 'custom-rest';
 
 export type AIProviderSummary = {
   id: string;
@@ -8,6 +8,10 @@ export type AIProviderSummary = {
   protocol: ProviderProtocol;
   hasApiKey: boolean;
   hasCustomHeaders?: boolean;
+  customRequestTemplate?: string;
+  customResponseMapping?: string;
+  apiKeyHeader?: string;
+  apiKeyPrefix?: string;
   enabled: boolean;
   isDefault: boolean;
   timeoutMs: number;
@@ -21,7 +25,7 @@ export type AIProviderSummary = {
   lastError?: string;
 };
 
-export type ProviderDraft = Omit<AIProviderSummary, 'hasApiKey' | 'hasCustomHeaders' | 'requestCount' | 'errorCount' | 'lastResponseMs' | 'lastTest' | 'lastError'> & { apiKey?: string; customHeaders?: string };
+export type ProviderDraft = Omit<AIProviderSummary, 'hasApiKey' | 'hasCustomHeaders' | 'customRequestTemplate' | 'customResponseMapping' | 'requestCount' | 'errorCount' | 'lastResponseMs' | 'lastTest' | 'lastError'> & { apiKey?: string; customHeaders?: string; customRequestTemplate?: string; customResponseMapping?: string };
 export type ProviderMessageContent = string | ({ type: 'text'; text: string } | { type: 'image_url'; image_url: { url: string } })[];
 
 
@@ -47,3 +51,4 @@ declare global {
     };
   }
 }
+
