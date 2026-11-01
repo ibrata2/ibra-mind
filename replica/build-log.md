@@ -57,3 +57,7 @@ Remaining product work includes manual multi-batch OCR fixture verification, aut
 
 - GitHub Actions run 41299809303 passed after cloud conflict protection: provider/security smoke checks, Windows installer packaging, packaged dashboard renderer check, and artifact 13080009778 (expires 2026-12-01). Live Supabase conflict and SQL migration validation remains pending.
 
+- Expanded dashboard search to search saved node labels/text across all local mind maps, flowcharts, and whiteboards. Results show project and excerpt and open the matching project; lookup is debounced and malformed documents are skipped.
+
+- Cross-project search passes TypeScript/Vite production build, provider smoke tests, caption parser tests, and production dependency audit; the interactive click-through remains to be performed.
+
