@@ -73,6 +73,38 @@ const { createEncryptedAuthStorage } = require('../desktop/auth-storage.cjs');
   assert.equal(transcription.segments[0].start, 0);
   const afterAudio = await handlers.get('providers:list')();
   assert.equal(afterAudio.providers[0].requestCount, 2);
+  const customRest = await handlers.get('providers:save')({}, {
+    id: 'custom-rest', name: 'Custom REST', baseUrl: 'https://example.test/custom/generate', model: 'rest-model', protocol: 'custom-rest', apiKey: 'rest-secret', apiKeyHeader: 'x-api-key', apiKeyPrefix: '',
+    customRequestTemplate: JSON.stringify({ deployment: '{{model}}', prompt: '{{lastUserMessage}}', system: '{{system}}', options: { max_output: '{{maxTokens}}', temperature: '{{temperature}}' } }),
+    customResponseMapping: JSON.stringify({ textPath: 'result.answer', tokenUsagePath: 'metrics.tokens' }),
+  });
+  assert.equal(customRest.ok, true);
+  const badTemplate = await handlers.get('providers:save')({}, { id: 'bad-template', name: 'Bad template', baseUrl: 'https://example.test/generate', model: 'm', protocol: 'custom-rest', customRequestTemplate: '{"input":"{{apiKey}}"}' });
+  assert.equal(badTemplate.ok, false);
+  const badMapping = await handlers.get('providers:save')({}, { id: 'bad-mapping', name: 'Bad mapping', baseUrl: 'https://example.test/generate', model: 'm', protocol: 'custom-rest', customResponseMapping: '{"textPath":"__proto__.secret"}' });
+  assert.equal(badMapping.ok, false);
+  global.fetch = async (url, options) => {
+    assert.equal(url, 'https://example.test/custom/generate');
+    assert.equal(options.method, 'POST');
+    assert.equal(options.headers['x-api-key'], 'rest-secret');
+    const body = JSON.parse(options.body);
+    assert.equal(body.deployment, 'rest-model');
+    assert.equal(body.prompt, 'last prompt');
+    assert.equal(body.system, 'system context');
+    assert.equal(body.options.max_output, 1200);
+    assert.equal(body.options.temperature, 0.1);
+    return new Response(JSON.stringify({ result: { answer: 'إجابة REST' }, metrics: { tokens: 23 } }), { status: 200 });
+  };
+  const restResult = await handlers.get('providers:complete')({}, { providerId: 'custom-rest', maxTokens: 1200, temperature: 0.1, messages: [{ role: 'system', content: 'system context' }, { role: 'user', content: 'last prompt' }] });
+  assert.equal(restResult.ok, true, restResult.error);
+  assert.equal(restResult.text, 'إجابة REST');
+  assert.equal(restResult.tokenUsage, 23);
+  const restListed = await handlers.get('providers:list')();
+  const savedRest = restListed.providers.find((provider) => provider.id === 'custom-rest');
+  assert.equal(JSON.parse(savedRest.customResponseMapping).textPath, 'result.answer');
+  assert.equal(JSON.stringify(restListed).includes('rest-secret'), false);
+  assert.equal((await handlers.get('providers:models')({}, 'custom-rest')).ok, false);
   await fs.rm(directory, { recursive: true, force: true });
-  process.stdout.write('Provider and encrypted auth-storage smoke checks passed.\n');
+  process.stdout.write('Provider protocols, custom REST request/response mapping, and encrypted auth-storage smoke checks passed.\n');
 })().catch((error) => { console.error(error); process.exitCode = 1; });
+
