@@ -4,7 +4,7 @@
 
 Programmed & Developed by **Ibrahim Al-Khazraji** · Copyright © 2026 Ibrahim Al-Khazraji. All Rights Reserved.
 
-IBRA MIND is an Arabic-first desktop and web visual thinking application. It currently provides persistent local projects, a mind map editor, flowchart editor, whiteboard, and a Windows-secured AI provider manager with mind-map generation and selected-branch AI expansion. The full product specification also calls for document, media, cloud, collaboration, and account features; these are not represented as complete until their real processing and storage paths are implemented.
+IBRA MIND is an Arabic-first desktop and web visual thinking application. It currently provides persistent local projects, a mind map editor with AI branch expansion, an AI-assisted flowchart editor, whiteboard, and a Windows-secured AI provider manager. The full product specification also calls for document, media, cloud, collaboration, and account features; these are not represented as complete until their real processing and storage paths are implemented.
 
 ## Install and run from source
 
