@@ -23,7 +23,7 @@ AI providers,Provider breadth,must,partial,OpenAI-compatible presets cover OpenA
 AI map generation,Generate and validate hierarchy,must,implemented,Provider request and schema validation
 Templates,Search category and save favorites,should,implemented,Local template catalog with 12 categories and map generation
 Documents,PDF DOCX PPTX XLSX TXT Markdown CSV extraction,must,implemented,Local extraction with file-size and text limits; AI chunk summaries then mind map
-Documents,OCR for scanned PDF,must,partial,Up to 10 image-only pages are rasterized locally and sent on explicit analysis to the selected vision model; larger scan sets require separate batches
+Documents,OCR for scanned PDF,must,partial,Image-only pages are rasterized and OCR-processed in explicit batches of up to 10 pages; sequential batches support longer documents and completed page results persist for the current session
 Images,Vision analysis to mind map,must,partial,Multimodal provider requests support image inputs; requires a configured vision-capable provider
 Images,Local OCR,must,missing,No offline OCR engine bundled
 Audio,Upload audio and transcribe with timestamps,must,partial,OpenAI-compatible audio/transcriptions endpoint; depends on compatible model
@@ -37,3 +37,4 @@ Templates,Template library,should,implemented,Searchable catalog with 12 categor
 Export,PNG SVG PDF and print,must,partial,Whole-map selected-branch and single-node Arabic-aware SVG high-resolution PNG and tiled multi-page PDF; custom print paper controls remain
 Accessibility,Arabic RTL and responsive layout,must,partial,RTL UI exists; broad keyboard/screen-reader audit still needed
 Windows installer,NSIS x64 setup,must,implemented,GitHub Actions release workflow
+
