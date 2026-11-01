@@ -6,6 +6,8 @@ Run `npm ci`, `npm run build`, `npm run test:smoke`, `npm run test:captions`, an
 
 - Create, rename, favorite, search, filter, open and delete local projects; confirm all three project types save independently.
 - Edit Arabic/English labels, create child/sibling branches, connect nodes, duplicate, cut, copy, paste, delete, undo, redo, collapse/expand, and arrange; reload to confirm IndexedDB restoration.
+- Search Arabic and English labels; cycle through multiple matches; confirm canvas focus and result counts; locate a node beneath collapsed ancestors and verify the path opens; repeat in outline mode and verify the row scrolls into view.
+- Select an edge and change its curve type, color, width, dashed setting, end arrow, and label; verify undo/redo, JSON export/import, and close/reopen persistence.
 - Change node shape, color and task state; export/import JSON and confirm metadata persists.
 - Select a node, invoke AI expansion with an expansion-routed provider, confirm returned child hierarchy is appended, autosaved, and reverted with Undo; verify invalid JSON and provider failures leave the map unchanged.
 - For the node AI assistant, exercise summarize, rewrite, translate to a chosen language, explain, brainstorm, and study-question actions using task-routed models; edit the preview, copy, replace the selected label, add multiple children, reload for autosave, and undo each applied change.
