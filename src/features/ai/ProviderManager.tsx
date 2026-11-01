@@ -6,6 +6,9 @@ const defaults: ProviderDraft = {
   id: '', name: '', baseUrl: 'https://api.openai.com/v1', model: '', protocol: 'openai-compatible',
   enabled: true, isDefault: false, timeoutMs: 60000, maxTokens: 4096, temperature: 0.4, apiKey: '',
   customHeaders: '',
+  apiKeyHeader: 'Authorization', apiKeyPrefix: 'Bearer',
+  customRequestTemplate: JSON.stringify({ model: '{{model}}', messages: '{{messages}}', max_tokens: '{{maxTokens}}', temperature: '{{temperature}}' }, null, 2),
+  customResponseMapping: JSON.stringify({ textPath: 'choices.0.message.content', tokenUsagePath: 'usage.total_tokens' }, null, 2),
 };
 const presets: { name: string; baseUrl: string; protocol: ProviderProtocol; model: string }[] = [
   { name: 'OpenAI', baseUrl: 'https://api.openai.com/v1', protocol: 'openai-compatible', model: 'gpt-4o-mini' },
@@ -17,6 +20,7 @@ const presets: { name: string; baseUrl: string; protocol: ProviderProtocol; mode
   { name: 'Mistral AI', baseUrl: 'https://api.mistral.ai/v1', protocol: 'openai-compatible', model: 'mistral-large-latest' },
   { name: 'Ollama (محلي)', baseUrl: 'http://localhost:11434/v1', protocol: 'openai-compatible', model: 'qwen2.5:7b' },
   { name: 'OpenAI Compatible', baseUrl: 'https://', protocol: 'openai-compatible', model: '' },
+  { name: 'REST مخصص', baseUrl: 'https://api.example.com/v1/generate', protocol: 'custom-rest', model: '' },
 ];
 const routingTasks = [
   ['mindMapGeneration', 'توليد خريطة'], ['expansion', 'توسيع فرع'], ['summarization', 'تلخيص'], ['documentAnalysis', 'تحليل مستند'], ['imageAnalysis', 'تحليل صورة'], ['flowchartGeneration', 'توليد مخطط'], ['translation', 'ترجمة'], ['explanation', 'شرح'],
@@ -115,6 +119,9 @@ export default function ProviderManager() {
     id: provider.id, name: provider.name, baseUrl: provider.baseUrl, model: provider.model, protocol: provider.protocol,
     enabled: provider.enabled, isDefault: provider.isDefault, timeoutMs: provider.timeoutMs, maxTokens: provider.maxTokens, temperature: provider.temperature, apiKey: '',
     customHeaders: '',
+    customRequestTemplate: provider.customRequestTemplate || defaults.customRequestTemplate,
+    customResponseMapping: provider.customResponseMapping || defaults.customResponseMapping,
+    apiKeyHeader: provider.apiKeyHeader || defaults.apiKeyHeader, apiKeyPrefix: provider.apiKeyPrefix ?? defaults.apiKeyPrefix,
   });
   const addPreset = (preset: typeof presets[number]) => setDraft({ ...defaults, ...preset, id: '', isDefault: providers.length === 0 });
 
@@ -136,14 +143,19 @@ export default function ProviderManager() {
       <div className="provider-presets">{presets.map((preset)=><button key={preset.name} onClick={()=>setDraft((current)=>current?({...current,...preset}):({...defaults,...preset}))}>{preset.name}</button>)}</div>
       <div className="provider-fields">
         <label>اسم المزود<input value={draft.name} maxLength={100} onChange={(event)=>setDraft({...draft,name:event.target.value})} placeholder="مزودي الخاص"/></label>
-        <label>البروتوكول<select value={draft.protocol} onChange={(event)=>setDraft({...draft,protocol:event.target.value as ProviderProtocol})}><option value="openai-compatible">OpenAI Compatible</option><option value="gemini">Google Gemini</option><option value="anthropic">Anthropic Messages</option></select></label>
+        <label>البروتوكول<select value={draft.protocol} onChange={(event)=>setDraft({...draft,protocol:event.target.value as ProviderProtocol})}><option value="openai-compatible">OpenAI Compatible</option><option value="gemini">Google Gemini</option><option value="anthropic">Anthropic Messages</option><option value="custom-rest">REST مخصص</option></select></label>
         <label className="wide-field">عنوان API<input dir="ltr" value={draft.baseUrl} onChange={(event)=>setDraft({...draft,baseUrl:event.target.value})} placeholder="https://api.example.com/v1"/></label>
         <label>معرّف النموذج<input dir="ltr" value={draft.model} onChange={(event)=>setDraft({...draft,model:event.target.value})} placeholder="اسم النموذج عند المزود"/></label>
         <label>مفتاح API<input dir="ltr" type="password" autoComplete="new-password" value={draft.apiKey||''} onChange={(event)=>setDraft({...draft,apiKey:event.target.value})} placeholder={draft.id?'اتركه فارغاً للاحتفاظ بالمفتاح الحالي':'يُحفظ مشفّراً في Windows'}/></label>
+        {draft.protocol==='custom-rest'&&<><label>رأس مفتاح API<input dir="ltr" value={draft.apiKeyHeader||''} onChange={(event)=>setDraft({...draft,apiKeyHeader:event.target.value})} placeholder="Authorization أو x-api-key"/></label><label>بادئة المفتاح<input dir="ltr" value={draft.apiKeyPrefix??''} onChange={(event)=>setDraft({...draft,apiKeyPrefix:event.target.value})} placeholder="Bearer"/><small>اتركها فارغة عند استخدام x-api-key مباشرة.</small></label></>}
         <label>المهلة بالثواني<input type="number" min="5" max="180" value={Math.round(draft.timeoutMs/1000)} onChange={(event)=>setDraft({...draft,timeoutMs:Number(event.target.value)*1000})}/></label>
         <label>الحد الأعلى للرموز<input type="number" min="256" max="32768" step="256" value={draft.maxTokens} onChange={(event)=>setDraft({...draft,maxTokens:Number(event.target.value)})}/></label>
         <label>درجة الحرارة<input type="number" min="0" max="2" step="0.1" value={draft.temperature} onChange={(event)=>setDraft({...draft,temperature:Number(event.target.value)})}/></label>
         <label className="wide-field">رؤوس HTTP مخصصة بصيغة JSON<textarea dir="ltr" rows={3} value={draft.customHeaders||''} onChange={(event)=>setDraft({...draft,customHeaders:event.target.value})} placeholder={'{"HTTP-Referer":"https://your-app.example"}'}/><small>اختياري. لا تضع Authorization أو مفاتيح API هنا. عند تعديل مزود موجود، اترك الحقل فارغاً للاحتفاظ بالرؤوس؛ أدخل {} لمسحها.</small></label>
+        {draft.protocol==='custom-rest'&&<>
+          <label className="wide-field">قالب جسم الطلب<textarea dir="ltr" rows={7} spellCheck={false} value={draft.customRequestTemplate||''} onChange={(event)=>setDraft({...draft,customRequestTemplate:event.target.value})} placeholder={defaults.customRequestTemplate}/><small>JSON صالح. المتغيرات المدعومة: {'{{model}}'}, {'{{messages}}'}, {'{{maxTokens}}'}, {'{{temperature}}'}, {'{{system}}'}, {'{{lastUserMessage}}'}. قيمة المتغير الكاملة تحافظ على نوعها JSON.</small></label>
+          <label className="wide-field">مسارات الاستجابة JSON<textarea dir="ltr" rows={3} spellCheck={false} value={draft.customResponseMapping||''} onChange={(event)=>setDraft({...draft,customResponseMapping:event.target.value})} placeholder={defaults.customResponseMapping}/><small>مثال: {'{"textPath":"result.answer","tokenUsagePath":"usage.total_tokens"}'}؛ مسارات النقاط تدعم عناصر المصفوفة مثل choices.0.text.</small></label>
+        </>}
       </div>
       <div className="provider-checks"><label><input type="checkbox" checked={draft.enabled} onChange={(event)=>setDraft({...draft,enabled:event.target.checked})}/> تفعيل المزود</label><label><input type="checkbox" checked={draft.isDefault} onChange={(event)=>setDraft({...draft,isDefault:event.target.checked})}/> المزود الافتراضي</label></div>
       <button className="provider-save" onClick={()=>void save()} disabled={!available||busyId!==null}><Save size={15}/> حفظ الإعداد</button>
@@ -153,3 +165,4 @@ export default function ProviderManager() {
     <small className="provider-cost-note">استهلاك الرموز تقديري؛ التكلفة المالية تعتمد على أسعار مزود الخدمة وحسابه.</small>
   </div>;
 }
+
