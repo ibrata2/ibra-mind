@@ -15,6 +15,7 @@ Mind map,Autosave and restore,must,implemented,IndexedDB project document store
 Mind map,JSON import and export,must,implemented,Validated import and download
 Mind map,Markdown export and print,should,implemented,Hierarchy export and browser print
 Flowchart,Create edit connect and arrange,must,implemented,React Flow editor and auto layout
+AI studio,Generate flowchart from a description,must,implemented,Task-routed provider output validated against supported shapes and references then appended to the current diagram
 Whiteboard,Add/edit shapes and notes,must,implemented,React Flow whiteboard tools
 Whiteboard,Image add resize group lock and layers,should,implemented,Local image object and canvas actions
 AI providers,Secure encrypted credentials,must,implemented,Electron safeStorage main-process service
