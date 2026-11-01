@@ -51,34 +51,6 @@
     "directories": {
       "output": "release"
     },
+    "icon": "assets/ibra-mind.ico",
     "files": [
-      "dist/**/*",
-      "desktop/**/*",
-      "package.json"
-    ],
-    "win": {
-      "target": [
-        {
-          "target": "nsis",
-          "arch": [
-            "x64"
-          ]
-        }
-      ]
-    },
-    "protocols": [
-      {
-        "name": "IBRA MIND account link",
-        "schemes": ["ibramind"]
-      }
-    ],
-    "nsis": {
-      "oneClick": false,
-      "perMachine": false,
-      "allowToChangeInstallationDirectory": true,
-      "createDesktopShortcut": true,
-      "createStartMenuShortcut": true,
-      "shortcutName": "IBRA MIND"
-    }
-  }
-}
+     

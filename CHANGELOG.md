@@ -1,6 +1,7 @@
 # Changelog
 
 ## 0.4.0 — Local project suite, AI, media, export and cloud accounts
+- Applied the supplied IBRA MIND icon to the Windows app and installer, Electron window, web favicon, dashboard, and About screen.
 - Preserve VTT/SRT cue start times while extracting YouTube subtitles, so the AI receives timestamped content for key ideas and chapter branches.
 - Added optional Supabase account setup, email/password registration and login, Google OAuth entry point, editable name/avatar profile, encrypted desktop auth sessions, password recovery, manual backup/restore, project history, and owner-only database RLS migration.
 - Registered the `ibramind://auth` Windows deep link so confirmation and password-reset links return to the desktop app.
@@ -23,17 +24,4 @@
 - Updated implementation records to clearly mark product areas that still need real integrations.
 
 ## 0.3.0 — Windows blank-screen fix and light visual system
-- Fixed packaged Electron asset URLs by using relative Vite paths, resolving the blank black window on Windows.
-- Reworked the dashboard and canvas with a light Arabic RTL design system and a richer starter mind map.
-- Removed the default Electron menu bar and added AA contrast tokens and regression notes.
-
-## 0.2.0 — Mind map editor and Windows packaging foundation
-- Added a React Flow mind map editor with editable topics, connections, zoom controls and minimap.
-- Added keyboard shortcuts, local autosave, structural undo/redo, and JSON export.
-- Added an Electron desktop shell and NSIS Windows installer configuration.
-- Added GitHub Actions to build and publish a downloadable Windows installer artifact.
-
-## 0.1.0 — Phase 1 foundation
-- Set up React, TypeScript, and Vite.
-- Added a responsive Arabic RTL dashboard with project cards and phase-aware actions.
-- Added project identity and the development roadmap.
+- Fixed packaged Electron asset URLs by using relati

@@ -37,6 +37,7 @@ function createWindow() {
     minWidth: 900,
     minHeight: 640,
     title: 'IBRA MIND',
+    icon: path.join(__dirname, '..', 'assets', 'ibra-mind.ico'),
     backgroundColor: '#f4f6fb',
     autoHideMenuBar: true,
     webPreferences: {
@@ -47,7 +48,17 @@ function createWindow() {
     },
   });
 
-  mainWindow.webContents.once('did-finish-load', deliverAuthUrl);
+  mainWindow.webContents.once('did-finish-load', () => {
+    deliverAuthUrl();
+    if (process.env.IBRA_MIND_SMOKE !== '1') return;
+    void mainWindow.webContents.executeJavaScript('(()=>{const root=document.getElementById("root");return Boolean(root&&root.children.length&&root.innerText.includes("IBRA MIND"));})()')
+      .then((loaded) => {
+        process.stdout.write(loaded ? 'IBRA_MIND_RENDERER_OK\n' : 'IBRA_MIND_RENDERER_EMPTY\n');
+        if (!loaded) process.exitCode = 1;
+        app.quit();
+      })
+      .catch((error) => { process.stderr.write(`IBRA_MIND_RENDERER_ERROR ${error.message}\n`); process.exitCode = 1; app.quit(); });
+  });
   if (!app.isPackaged) {
     mainWindow.loadURL('http://127.0.0.1:5173');
   } else {
@@ -80,38 +91,4 @@ if (hasSingleInstance) app.whenReady().then(() => {
     microphonePermissionArmed = true;
     return { ok: true };
   });
-  ipcMain.handle('auth:take-pending', (event) => {
-    if (!isAppOrigin(event.sender.getURL())) return '';
-    const value = pendingAuthUrl;
-    pendingAuthUrl = '';
-    return value;
-  });
-  ipcMain.handle('auth:ack', (event, value) => {
-    if (!isAppOrigin(event.sender.getURL())) return { ok: false };
-    if (pendingAuthUrl === value) pendingAuthUrl = '';
-    return { ok: true };
-  });
-  const authStorageFile = () => path.join(app.getPath('userData'), 'auth-session.enc');
-  const authStorage = createEncryptedAuthStorage({ safeStorage, filePath: authStorageFile });
-  ipcMain.handle('auth:storage:get', (event, key) => {
-    if (!isAppOrigin(event.sender.getURL())) return null;
-    return authStorage.get(key);
-  });
-  ipcMain.handle('auth:storage:set', (event, key, value) => {
-    if (!isAppOrigin(event.sender.getURL())) throw new Error('مصدر التطبيق غير صالح.');
-    authStorage.set(key, value);
-  });
-  ipcMain.handle('auth:storage:remove', (event, key) => {
-    if (!isAppOrigin(event.sender.getURL())) throw new Error('مصدر التطبيق غير صالح.');
-    authStorage.remove(key);
-  });
-  createProviderService({ app, ipcMain, safeStorage });
-  createWindow();
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow();
-  });
-});
-
-app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') app.quit();
-});
+  ipcMain.handle('auth:take-pend

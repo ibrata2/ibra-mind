@@ -20,6 +20,10 @@ Build the web app with `npm run build`, preview it with `npm run preview`, or ru
 
 Build a Windows x64 NSIS installer with `npm run dist:win`. The installer is unsigned and Windows may show its publisher warning. GitHub Actions publishes installer assets under **Releases** when a release build is triggered; Actions artifacts are temporary build outputs, not the public download location.
 
+The supplied IBRA MIND artwork is installed as the multi-size Windows application and installer icon, the Electron window icon, the web favicon, and the dashboard/About logo.
+
+Run `npm run test:smoke` for provider and encrypted-session checks. Windows CI additionally launches the packaged app and checks that the Arabic dashboard rendered before saving the installer artifact.
+
 ## Current working capabilities
 
 - Local dashboard with project creation, recent/favorite filters, search, grid/list views, and delete/rename.
@@ -38,23 +42,4 @@ Build a Windows x64 NSIS installer with `npm run dist:win`. The installer is uns
 
 ## Security notes
 
-Provider credentials are kept by the Electron main process and encrypted through Electron `safeStorage`; they are not returned to the React renderer. The web build deliberately cannot save provider secrets without a backend. Requests to external APIs require the user's own provider key and send the selected prompt, document text, or image to that provider. No API credentials are included in this repository.
-
-## Enable cloud accounts and backups
-
-1. Create a Supabase project and run [`supabase/migrations/001_cloud_projects.sql`](supabase/migrations/001_cloud_projects.sql) in its SQL Editor. It creates project and history tables with owner-only row policies.
-2. Open **Settings → الحساب والسحابة** and enter the project URL and its public/publishable key. These client connection settings are stored on this device.
-3. Create an account or sign in, choose a local project, then select **رفع وحفظ نسخة**. Restoring a cloud item creates a new local copy; it does not silently overwrite a local file.
-
-For Windows email confirmation and password reset, add `ibramind://auth` to the Supabase Auth allowed redirect URLs. For web, also add that web deployment's origin. The Windows app registers this link with the operating system and completes the returned session in the application. To enable Google login, configure the Google provider in Supabase Auth with your OAuth client credentials and add the same redirect URLs to the provider configuration. Live Google sign-in needs verification against your own Supabase/Google project. Background sync, conflict resolution, and live collaboration are not yet available.
-
-## Product identity
-
-- Developer: Ibrahim Al-Khazraji
-- Telegram: https://t.me/ibraprogram
-- TikTok: @ibraprogram
-- Copyright © 2026 Ibrahim Al-Khazraji. All Rights Reserved.
-
-## Development records
-
-See `replica/features.csv` for the current feature matrix, `replica/build-log.md` for implementation and verification notes, `replica/architecture.md` for the application structure, and `replica/test-plan.md` for manual regression flows.
+Provider credentials are kept by the Electron main process and encrypted through Electron `safeStorage`; they are not returned to the React renderer. The web build deliberately cannot save provider secrets without a backend. Requests to external APIs require the user's own provider key and send the selected prompt, document text, or image to that provider. No API credentials are included in 
