@@ -27,6 +27,8 @@ export default function CloudAccount() {
   const [signedIn, setSignedIn] = useState(false);
   const [recoveryMode, setRecoveryMode] = useState(() => localStorage.getItem(PASSWORD_RECOVERY_KEY) === 'pending');
   const [identity, setIdentity] = useState('');
+  const [displayName, setDisplayName] = useState('');
+  const [avatarUrl, setAvatarUrl] = useState('');
   const [projects, setProjects] = useState<CloudProject[]>([]);
   const [versions, setVersions] = useState<CloudVersion[]>([]);
   const [selected, setSelected] = useState('');
@@ -43,12 +45,16 @@ export default function CloudAccount() {
       if (!alive) return;
       setSignedIn(Boolean(data.user));
       setIdentity(data.user?.email ?? '');
+      setDisplayName(String(data.user?.user_metadata?.full_name ?? data.user?.user_metadata?.name ?? ''));
+      setAvatarUrl(String(data.user?.user_metadata?.avatar_url ?? ''));
     });
     const { data: { subscription } } = client.auth.onAuthStateChange((event, session) => {
       setSignedIn(Boolean(session?.user));
       if (event === 'PASSWORD_RECOVERY') { localStorage.setItem(PASSWORD_RECOVERY_KEY, 'pending'); setRecoveryMode(true); }
       if (event === 'SIGNED_OUT') { localStorage.removeItem(PASSWORD_RECOVERY_KEY); setRecoveryMode(false); }
       setIdentity(session?.user?.email ?? '');
+      setDisplayName(String(session?.user?.user_metadata?.full_name ?? session?.user?.user_metadata?.name ?? ''));
+      setAvatarUrl(String(session?.user?.user_metadata?.avatar_url ?? ''));
       setProjects([]); setVersions([]);
     });
     return () => { alive = false; subscription.unsubscribe(); };
@@ -74,6 +80,25 @@ export default function CloudAccount() {
       if (!data.session) setNotice('أرسلنا رسالة تأكيد إلى بريدك. أكّد الحساب ثم سجّل الدخول.');
       else setNotice('تم إنشاء الحساب وتسجيل الدخول.');
     }
+  });
+
+  const signInWithGoogle = () => run(async () => {
+    const client = getCloudClient();
+    if (!client) throw new Error('احفظ رابط المشروع والمفتاح العام أولاً.');
+    const { error } = await client.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: authRedirectUrl() } });
+    if (error) throw error;
+  });
+
+  const saveProfile = () => run(async () => {
+    const client = getCloudClient();
+    if (!client) throw new Error('إعداد السحابة غير مكتمل.');
+    const normalizedName = displayName.trim();
+    const normalizedAvatar = avatarUrl.trim();
+    if (normalizedName.length > 80) throw new Error('الاسم يجب ألا يتجاوز 80 حرفاً.');
+    if (normalizedAvatar && (!/^https:\/\//i.test(normalizedAvatar) || normalizedAvatar.length > 2048)) throw new Error('رابط الصورة يجب أن يبدأ بـ https:// وألا يتجاوز 2048 حرفاً.');
+    const { error } = await client.auth.updateUser({ data: { full_name: normalizedName, avatar_url: normalizedAvatar || null } });
+    if (error) throw error;
+    setNotice('تم حفظ بيانات الملف الشخصي.');
   });
 
   const sendPasswordReset = () => run(async () => {
@@ -149,11 +174,11 @@ export default function CloudAccount() {
       <div className="cloud-config-actions"><button className="editor-button primary" disabled={busy||!config.url.trim()||!config.key.trim()} onClick={()=>{try{const saved=saveCloudConfig(config);setConfig(saved);setConfigured(true);setNotice('حُفظ إعداد الاتصال محلياً.');}catch(e){setNotice(message(e));}}}>حفظ الإعداد</button><small>المفتاح العام مخصص للعميل؛ لا تضع Service Role Key هنا.</small></div>
     </details>
     {configured&&<>
-      {!signedIn?<form className="cloud-login" onSubmit={(event)=>{event.preventDefault();void authenticate('signIn');}}>
+      {!signedIn?<><form className="cloud-login" onSubmit={(event)=>{event.preventDefault();void authenticate('signIn');}}>
         <label>البريد الإلكتروني<input type="email" required value={email} onChange={(event)=>setEmail(event.target.value)} autoComplete="email"/></label>
         <label>كلمة المرور<input type="password" minLength={8} required value={password} onChange={(event)=>setPassword(event.target.value)} autoComplete="current-password"/></label>
-        <div className="cloud-config-actions"><button className="editor-button primary" disabled={busy}>تسجيل الدخول</button><button type="button" className="editor-button" disabled={busy} onClick={()=>void authenticate('signUp')}>إنشاء حساب</button><button type="button" className="editor-button" disabled={busy} onClick={()=>void sendPasswordReset()}>نسيت كلمة المرور</button></div>
-      </form>:<div className="cloud-signed-in"><ShieldCheck size={17}/><b>{identity}</b>{recoveryMode?<><input aria-label="كلمة المرور الجديدة" type="password" minLength={8} value={password} onChange={(event)=>setPassword(event.target.value)} placeholder="كلمة المرور الجديدة"/><button className="editor-button primary" disabled={busy} onClick={()=>void updatePassword()}>تحديث كلمة المرور</button></>:<button className="editor-button" disabled={busy} onClick={()=>void run(async()=>{const {error}=await getCloudClient()!.auth.signOut();if(error)throw error;setIdentity('');})}><LogOut size={14}/> تسجيل الخروج</button>}</div>}
+        <div className="cloud-config-actions"><button className="editor-button primary" disabled={busy}>تسجيل الدخول</button><button type="button" className="editor-button" disabled={busy} onClick={()=>void authenticate('signUp')}>إنشاء حساب</button><button type="button" className="editor-button" disabled={busy} onClick={()=>void sendPasswordReset()}>نسيت كلمة المرور</button></div></form>
+      <button type="button" className="editor-button" disabled={busy} onClick={()=>void signInWithGoogle()}>المتابعة باستخدام Google</button></>:<><div className="cloud-signed-in"><ShieldCheck size={17}/>{avatarUrl&&<img className="cloud-avatar" src={avatarUrl} alt="" referrerPolicy="no-referrer" onError={(event)=>{event.currentTarget.hidden=true}}/>}<b>{displayName||identity}</b><small>{identity}</small>{recoveryMode?<><input aria-label="كلمة المرور الجديدة" type="password" minLength={8} value={password} onChange={(event)=>setPassword(event.target.value)} placeholder="كلمة المرور الجديدة"/><button className="editor-button primary" disabled={busy} onClick={()=>void updatePassword()}>تحديث كلمة المرور</button></>:<button className="editor-button" disabled={busy} onClick={()=>void run(async()=>{const {error}=await getCloudClient()!.auth.signOut();if(error)throw error;setIdentity('');})}><LogOut size={14}/> تسجيل الخروج</button>}</div>{!recoveryMode&&<div className="cloud-profile"><label>الاسم الظاهر<input value={displayName} maxLength={80} onChange={(event)=>setDisplayName(event.target.value)} placeholder="اسمك"/></label><label>رابط الصورة الشخصية<input type="url" value={avatarUrl} onChange={(event)=>setAvatarUrl(event.target.value)} placeholder="https://…"/></label><button className="editor-button" disabled={busy} onClick={()=>void saveProfile()}>حفظ الملف الشخصي</button></div>}</>}
       {signedIn&&<div className="cloud-sync">
         <div className="cloud-local-upload"><label>الملف المحلي<select value={localProjectId} onChange={(event)=>setLocalProjectId(event.target.value)}><option value="">اختر ملفاً لرفعه</option>{listProjects().map((project)=><option key={project.id} value={project.id}>{project.title}</option>)}</select></label><button className="editor-button primary" disabled={busy||!localProjectId} onClick={()=>void pushLocal()}><Upload size={14}/> رفع وحفظ نسخة</button></div>
         <div className="cloud-list-heading"><b>ملفات الحساب</b><button className="editor-button" disabled={busy} onClick={()=>void refreshProjects()}><RefreshCw size={14}/> مزامنة القائمة</button></div>

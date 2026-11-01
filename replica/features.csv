@@ -31,7 +31,7 @@ Audio,Microphone recording,must,partial,MediaRecorder flow implemented; Electron
 Audio,Transcript to mind map,must,implemented,Transcription text sent to a configured generation provider
 YouTube,Transcript to mind map,must,partial,URL validation plus VTT/SRT/TXT upload and chunked analysis; user provides an accessible transcript
 Storage,Cloud backup restore and version history,must,partial,Manual Supabase upload restore and snapshots; requires user-owned project and SQL migration; background sync and conflict resolution remain
-Accounts,Email sign up sign in and password recovery,must,partial,Supabase email/password flows; profile management and Google OAuth remain
+Accounts,Email sign up sign in and password recovery,must,partial,Supabase email/password, Google OAuth entry point, and editable name/avatar metadata; requires owner Google provider setup and live callback verification
 Collaboration,Share and live editing,should,missing,No invitation or real-time editing backend
 Templates,Template library,should,implemented,Searchable catalog with 12 categories and editable local maps
 Export,PNG SVG PDF and print,must,partial,Whole-map selected-branch and single-node Arabic-aware SVG high-resolution PNG and tiled multi-page PDF; custom print paper controls remain

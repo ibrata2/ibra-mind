@@ -34,7 +34,7 @@ Build a Windows x64 NSIS installer with `npm run dist:win`. The installer is uns
 - Mind map export to Arabic-aware SVG, high-resolution PNG, tiled multi-page PDF, selected-branch SVG/PNG/PDF, JSON and Markdown, plus browser printing. Large raster maps are capped to keep memory use bounded.
 - YouTube transcript-to-map flow validates video links and accepts pasted captions or VTT/SRT/TXT subtitle files. It cannot fetch a transcript that YouTube has not made accessible to the user.
 - English/Arabic interface foundations, Arabic RTL, application identity, and an Electron Windows installer workflow.
-- Optional Supabase accounts: email/password sign-up and sign-in, password recovery, manual cloud backup and restore, and project restore points. Cloud access requires the owner's Supabase project and the supplied row-security migration. The app must only receive a public/publishable key; never use a service-role key in the app.
+- Optional Supabase accounts: email/password sign-up and sign-in, password recovery, Google OAuth (after provider setup), editable display name/avatar URL, manual cloud backup and restore, and project restore points. Cloud access requires the owner's Supabase project and the supplied row-security migration. The app must only receive a public/publishable key; never use a service-role key in the app.
 
 ## Security notes
 
@@ -46,7 +46,7 @@ Provider credentials are kept by the Electron main process and encrypted through
 2. Open **Settings → الحساب والسحابة** and enter the project URL and its public/publishable key. These client connection settings are stored on this device.
 3. Create an account or sign in, choose a local project, then select **رفع وحفظ نسخة**. Restoring a cloud item creates a new local copy; it does not silently overwrite a local file.
 
-For Windows email confirmation and password reset, add `ibramind://auth` to the Supabase Auth allowed redirect URLs. For web, also add that web deployment's origin. The Windows app registers this link with the operating system and completes the returned session in the application. OAuth, background sync, conflict resolution, profile avatars and live collaboration are still unfinished.
+For Windows email confirmation and password reset, add `ibramind://auth` to the Supabase Auth allowed redirect URLs. For web, also add that web deployment's origin. The Windows app registers this link with the operating system and completes the returned session in the application. To enable Google login, configure the Google provider in Supabase Auth with your OAuth client credentials and add the same redirect URLs to the provider configuration. Live Google sign-in needs verification against your own Supabase/Google project. Background sync, conflict resolution, and live collaboration are not yet available.
 
 ## Product identity
 

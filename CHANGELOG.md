@@ -1,9 +1,9 @@
 # Changelog
 
 ## 0.4.0 — Local project suite, AI, media, export and cloud accounts
-- Added optional Supabase account setup, email/password registration and login, password recovery, manual backup/restore, project history, and owner-only database RLS migration.
+- Added optional Supabase account setup, email/password registration and login, Google OAuth entry point, editable name/avatar profile, password recovery, manual backup/restore, project history, and owner-only database RLS migration.
 - Registered the `ibramind://auth` Windows deep link so confirmation and password-reset links return to the desktop app.
-- Added YouTube transcript import from VTT/SRT/TXT, Arabic-aware SVG and high-resolution PNG exports, tiled multi-page PDF, and selected-branch exports.
+- Added YouTube transcript import from VTT/SRT/TXT, Arabic-aware SVG and high-resolution PNG exports, tiled multi-page PDF, selected-branch exports, and individual-node PNG/SVG/PDF exports.
 - Added OpenAI-compatible presets for DeepSeek, OpenRouter, Groq and Mistral; provider model-list retrieval and encrypted custom HTTP headers.
 - Added lazy-loaded editors and analysis tools; separated large reader and canvas bundles for faster startup.
 - Changed Windows installer workflow so pushes build reviewable artifacts, while only version tags publish GitHub Releases.
