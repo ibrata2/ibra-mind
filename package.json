@@ -11,6 +11,8 @@
     "dev": "vite --configLoader runner",
     "build": "tsc -b && vite build --configLoader runner",
     "test:smoke": "node tests/provider-smoke.cjs",
+    "test:captions": "node --disable-warning=ExperimentalWarning tests/caption-smoke.mjs",
+    "test:desktop-smoke": "node tests/desktop-smoke.cjs",
     "preview": "vite preview --configLoader runner",
     "desktop:dev": "concurrently -k \"vite --configLoader runner --host 127.0.0.1\" \"wait-on http://127.0.0.1:5173 && electron .\"",
     "dist:win": "npm run build && electron-builder --win nsis --publish never"

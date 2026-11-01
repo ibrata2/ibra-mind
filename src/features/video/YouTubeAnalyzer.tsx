@@ -2,12 +2,11 @@ import { useEffect, useMemo, useState, type ChangeEvent } from 'react';
 import { AlertCircle, Link2, LoaderCircle, Network, Subtitles, Upload, X } from 'lucide-react';
 import type { AIProviderSummary } from '../../types/desktop';
 import { mapFromJson, type GeneratedMap } from '../ai/AIGenerator';
+import { parseCaptions } from './captionParser';
 
 const CHUNK_SIZE=16000;
 const cleanJson=(value:string)=>JSON.parse(value.trim().replace(/^```(?:json)?\s*/i,'').replace(/\s*```$/,''));
 function videoId(value:string){try{const url=new URL(value);if(!['youtube.com','www.youtube.com','m.youtube.com','youtu.be'].includes(url.hostname))return'';return url.hostname==='youtu.be'?url.pathname.split('/').filter(Boolean)[0]||'':url.searchParams.get('v')||url.pathname.match(/\/(?:shorts|live|embed)\/([^/?]+)/)?.[1]||'';}catch{return'';}}
-function parseCaptions(value:string){return value.replace(/^WEBVTT[^\n]*\n?/i,'').replace(/^NOTE[^\n]*(?:\n(?!\s*$).*)*/gm,'').split(/\r?\n/).map((line)=>line.trim()).filter((line)=>line&&!/^\d+$/.test(line)&&!/^\d{2}:\d{2}(?::\d{2})?[.,]\d{3}\s+-->/.test(line)&&!/^(STYLE|REGION)\s*$/.test(line)).map((line)=>line.replace(/<[^>]*>/g,'').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').trim()).filter(Boolean).join('\n');}
-
 export default function YouTubeAnalyzer({onClose,onGenerated}:{onClose:()=>void;onGenerated:(map:GeneratedMap)=>void}){
   const [providers,setProviders]=useState<AIProviderSummary[]>([]);const[providerId,setProviderId]=useState('');const[url,setUrl]=useState('');const[videoTitle,setVideoTitle]=useState('');const[transcript,setTranscript]=useState('');const[error,setError]=useState('');const[busy,setBusy]=useState(false);const[progress,setProgress]=useState('');const[ready,setReady]=useState(false);
   useEffect(()=>{if(!window.ibraMind?.providers){setError('تحليل التفريغ يحتاج مزوداً مضبوطاً داخل تطبيق Windows.');setReady(true);return;}void window.ibraMind.providers.list().then((result)=>{const enabled=(result.providers||[]).filter((item)=>item.enabled);setProviders(enabled);let route='';try{route=JSON.parse(localStorage.getItem('ibra-mind-ai-routing-v1')||'{}').mindMapGeneration||'';}catch{route='';}setProviderId(enabled.find((item)=>item.id===route)?.id||enabled.find((item)=>item.isDefault)?.id||enabled[0]?.id||'');if(!enabled.length)setError('أضف مزود ذكاء اصطناعي أولاً.');setReady(true);}).catch(()=>{setError('تعذر تحميل إعدادات المزود.');setReady(true);});},[]);

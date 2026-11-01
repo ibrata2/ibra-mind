@@ -22,7 +22,7 @@ Run `npm ci`, `npm run build`, `npm run test:smoke`, and `npm audit --omit=dev` 
 - Run provider service smoke test: encrypted-key redaction, zero temperature, request/token counters and transcription segments.
 - With user-supplied API credentials, test provider connection, generation, model routing, failures, timeout behavior, and response validation; check credentials never appear in renderer, logs or exports.
 - Extract Arabic/English fixtures for text PDF, DOCX, PPTX, XLSX, TXT/Markdown/CSV; test size limits, malformed files, OCR for scanned PDF pages (10-page cap), and chunked AI analysis.
-- Test image-to-map with vision model; test audio upload and microphone permission, transcription and transcript-to-map; test pasted/VTT/SRT YouTube captions and invalid links.
+- Test image-to-map with vision model; test audio upload and microphone permission, transcription and transcript-to-map; test pasted/VTT/SRT YouTube captions, confirm cue start times reach the AI prompt and appear in generated branches, and check invalid links.
 - Test each template search/category/favorite/use flow.
 
 ## Accounts and cloud
