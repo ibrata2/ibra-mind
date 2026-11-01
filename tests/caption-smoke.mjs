@@ -9,3 +9,4 @@ assert.equal(parseCaptions(srt), '[00:02:05.250] مرحلة أولى\n[00:03:10.
 
 assert.equal(parseCaptions('سطر أول\nسطر ثانٍ'), 'سطر أول\nسطر ثانٍ');
 console.log('YouTube VTT/SRT timestamp parsing passed.');
+
