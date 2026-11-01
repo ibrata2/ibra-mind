@@ -33,7 +33,7 @@ declare global {
   interface ImportMeta { readonly env: ImportMetaEnv }
   interface Window {
     ibraMind?: {
-      auth: { takePending: () => Promise<string>; acknowledge: (url: string) => Promise<{ ok: boolean }>; onCallback: (handler: (url: string) => void) => () => void };
+      auth: { takePending: () => Promise<string>; acknowledge: (url: string) => Promise<{ ok: boolean }>; onCallback: (handler: (url: string) => void) => () => void; storage: { getItem: (key: string) => Promise<string | null>; setItem: (key: string, value: string) => Promise<void>; removeItem: (key: string) => Promise<void> } };
       media: { requestMicrophone: () => Promise<{ ok: boolean; error?: string }> };
       providers: {
         list: () => Promise<{ available: boolean; providers: AIProviderSummary[]; error?: string }>;

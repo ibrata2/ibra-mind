@@ -28,7 +28,19 @@ export function getCloudClient(): SupabaseClient | null {
   const signature = `${url}|${key}`;
   if (signature !== cachedSignature) {
     cachedSignature = signature;
-    cachedClient = createClient(url, key, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } });
+    const desktopStorage = window.ibraMind?.auth.storage;
+    const storage = desktopStorage ? {
+      getItem: async (storageKey: string) => {
+        const encrypted = await desktopStorage.getItem(storageKey);
+        if (encrypted) return encrypted;
+        const legacy = localStorage.getItem(storageKey);
+        if (legacy) { await desktopStorage.setItem(storageKey, legacy); localStorage.removeItem(storageKey); }
+        return legacy;
+      },
+      setItem: (storageKey: string, value: string) => desktopStorage.setItem(storageKey, value),
+      removeItem: (storageKey: string) => desktopStorage.removeItem(storageKey),
+    } : localStorage;
+    cachedClient = createClient(url, key, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: !desktopStorage, storage } });
   }
   return cachedClient;
 }

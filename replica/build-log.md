@@ -11,7 +11,7 @@
 - Added audio recording/upload, encrypted-provider transcription calls, timestamp segments, and transcript-to-map conversion.
 - Added 12 category-based mind-map templates with search, local favorites, and use-as-new-project behavior.
 - Added Arabic-aware SVG, high-resolution PNG, PDF export and a YouTube transcript analysis flow that accepts VTT/SRT/TXT captions.
-- Added an optional Supabase account and manual cloud backup flow: email/password registration and login, password recovery, Google OAuth entry point, editable display name/avatar metadata, owner-filtered file listing, upload, restore-to-new-local-copy, and snapshots.
+- Added an optional Supabase account and manual cloud backup flow: email/password registration and login, password recovery, Google OAuth entry point, editable display name/avatar metadata, encrypted desktop auth-session storage, owner-filtered file listing, upload, restore-to-new-local-copy, and snapshots.
 - Added a Supabase migration for owner-only projects and version history; app settings require the owner's public/publishable key and never accept a service-role key.
 - Preserved node shapes, colors and completion state in JSON exports; split editor/media code into lazy-loaded modules to reduce the startup bundle.
 - Added vision-provider OCR for image-only PDF pages, with a visible cap of 10 scanned pages and a warning that those images are sent to the selected provider.

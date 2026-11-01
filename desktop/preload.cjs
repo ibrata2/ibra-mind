@@ -4,6 +4,11 @@ contextBridge.exposeInMainWorld('ibraMind', {
   auth: {
     takePending: () => ipcRenderer.invoke('auth:take-pending'),
     acknowledge: (url) => ipcRenderer.invoke('auth:ack', url),
+    storage: {
+      getItem: (key) => ipcRenderer.invoke('auth:storage:get', key),
+      setItem: (key, value) => ipcRenderer.invoke('auth:storage:set', key, value),
+      removeItem: (key) => ipcRenderer.invoke('auth:storage:remove', key),
+    },
     onCallback: (handler) => {
       if (typeof handler !== 'function') return () => undefined;
       const listener = (_event, url) => handler(url);
