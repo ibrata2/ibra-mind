@@ -61,3 +61,5 @@ Remaining product work includes manual multi-batch OCR fixture verification, aut
 
 - Cross-project search passes TypeScript/Vite production build, provider smoke tests, caption parser tests, and production dependency audit; the interactive click-through remains to be performed.
 
+- GitHub Actions run 41300656431 passed provider/security checks, Windows installer build, and packaged dashboard rendering after cross-project search was added; artifact 13081511242 expires 2026-12-01. Search interaction itself was not part of the CI smoke.
+
