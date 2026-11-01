@@ -4,9 +4,10 @@ import {
   addEdge, Background, Controls, MiniMap, ReactFlow, useEdgesState, useNodesState,
   type Connection, type Edge, type Node, type NodeProps, type ReactFlowInstance,
 } from '@xyflow/react';
-import { ArrowRight, CircleHelp, Copy, Download, Expand, FileText, FileUp, FileDown, FileImage, Home, LayoutGrid, ListTree, Plus, Printer, Redo2, Save, Scissors, Shrink, Trash2, Undo2 } from 'lucide-react';
+import { ArrowRight, CircleHelp, Copy, Download, Expand, FileText, FileUp, FileDown, FileImage, Home, LayoutGrid, ListTree, Plus, Printer, Redo2, Save, Scissors, Shrink, Sparkles, LoaderCircle, Trash2, Undo2 } from 'lucide-react';
 import { touchProject } from '../projects/projectStore';
 import { loadDocument, saveDocument } from '../storage/documentStore';
+import { mapFromJson } from '../ai/AIGenerator';
 
 type MindKind = 'branch' | 'rectangle' | 'circle' | 'diamond' | 'sticky' | 'task';
 type MindColor = 'violet' | 'blue' | 'mint' | 'amber';
@@ -134,6 +135,7 @@ export default function MindMapEditor({ projectId, title, onHome }: { projectId:
   const [clipboardReady, setClipboardReady] = useState(false);
   const [outlineMode, setOutlineMode] = useState(false);
   const [notice, setNotice] = useState('');
+  const [aiBusy, setAiBusy] = useState(false);
   const history = useRef<Snapshot[]>([]);
   const historyIndex = useRef(-1);
   const ready = useRef(false);
@@ -457,6 +459,41 @@ export default function MindMapEditor({ projectId, title, onHome }: { projectId:
     setEdges(nextEdges);
   }, [selectedId, nodes, edges, withCallbacks, checkpoint, setNodes, setEdges]);
 
+  const expandWithAi = useCallback(async () => {
+    const selected = nodes.find((node) => node.id === selectedId);
+    if (!selected || !window.ibraMind?.providers || aiBusy) return;
+    setAiBusy(true); setNotice('');
+    try {
+      const result = await window.ibraMind.providers.list();
+      const enabled = (result.providers || []).filter((provider) => provider.enabled);
+      let route = '';
+      try { route = JSON.parse(localStorage.getItem('ibra-mind-ai-routing-v1') || '{}').expansion || ''; } catch { route = ''; }
+      const provider = enabled.find((item) => item.id === route) || enabled.find((item) => item.isDefault) || enabled[0];
+      if (!provider) throw new Error('أضف مزوداً مفعّلاً من إعدادات الذكاء الاصطناعي أولاً.');
+      const completion = await window.ibraMind.providers.complete({
+        providerId: provider.id, maxTokens: Math.min(provider.maxTokens, 3500), temperature: provider.temperature,
+        messages: [
+          { role: 'system', content: 'وسّع الفكرة المحددة إلى خريطة فرعية نافعة باللغة نفسها. أجب بكائن JSON فقط بالشكل {"title":"عنوان الفكرة","children":[{"title":"فرع","children":[{"title":"تفصيل","children":[]}]}]}. أنشئ 3 إلى 6 فروع مباشرة، وتفاصيل عند الحاجة. لا تكرر العنوان كفرع ولا تضف Markdown.' },
+          { role: 'user', content: `وسّع هذه الفكرة إلى فروع فرعية مستقلة وواضحة:\n${selected.data.label.slice(0, 1800)}` },
+        ],
+      });
+      if (!completion.ok || !completion.text) throw new Error(completion.error || 'تعذر توسيع الفكرة.');
+      const generated = mapFromJson(JSON.parse(completion.text.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '')));
+      const idMap = new Map(generated.nodes.map((node) => [node.id, node.id === 'root' ? selected.id : `ai-${crypto.randomUUID()}`]));
+      const addedNodes = generated.nodes.filter((node) => node.id !== 'root').map((node) => ({
+        ...node, id: idMap.get(node.id)!, position: { x: selected.position.x + node.position.x, y: selected.position.y + node.position.y },
+      })) as MindNodeType[];
+      const addedEdges = generated.edges.map((edge) => ({ ...edge, id: `edge-${crypto.randomUUID()}`, source: idMap.get(edge.source)!, target: idMap.get(edge.target)! }));
+      const nextNodes = withCallbacks([...nodes, ...addedNodes]);
+      const nextEdges = [...edges, ...addedEdges];
+      checkpoint(nextNodes, nextEdges);
+      setNodes(nextNodes); setEdges(nextEdges);
+      setNotice(`أُضيفت ${addedNodes.length} عقدة إلى «${selected.data.label}» باستخدام ${provider.name}.`);
+    } catch (failure) {
+      setNotice(failure instanceof Error ? `تعذر التوسيع بالذكاء الاصطناعي: ${failure.message}` : 'تعذر التوسيع بالذكاء الاصطناعي.');
+    } finally { setAiBusy(false); }
+  }, [nodes, selectedId, aiBusy, withCallbacks, checkpoint, setNodes, setEdges]);
+
   const childrenOf = useCallback((id: string) => edges.filter((edge) => edge.source === id).map((edge) => edge.target), [edges]);
   const renderOutline = (id: string, depth: number, path: Set<string>): ReactNode => {
     const node = nodes.find((item) => item.id === id);
@@ -517,9 +554,10 @@ export default function MindMapEditor({ projectId, title, onHome }: { projectId:
     <header className="editor-topbar"><button className="editor-brand" onClick={onHome}><span className="brand-mark"><ArrowRight size={18}/></span><span>IBRA <b>MIND</b></span></button><div className="editor-title"><small>خريطتي الذهنية</small><b>{title}</b></div><div className="editor-save"><Save size={15}/>{savedAt ? `حُفظ تلقائياً · ${savedAt}` : 'حفظ تلقائي مفعّل'}</div><button className="editor-button subtle" onClick={exportMap}><Download size={15}/> تصدير JSON</button><button className="editor-button subtle" onClick={onHome}><Home size={15}/> الرئيسية</button></header>
     <div className="editor-toolbar"><button className="editor-button primary" onClick={() => addTopic('child')}><Plus size={16}/> فرع تابع <kbd>Tab</kbd></button><button className="editor-button" onClick={() => addTopic('sibling')} disabled={!selectedId || selectedId === 'root'}><Plus size={15}/> فرع بجانبه</button><button className="editor-button" onClick={duplicateSelected} disabled={!selectedId || selectedId === 'root'}><Copy size={14}/> تكرار</button><button className="editor-button" onClick={() => { copySelected(); removeSelected(); }} disabled={!selectedId || selectedId === 'root'}><Scissors size={14}/> قص</button><button className="editor-button" onClick={pasteBranch} disabled={!clipboardReady}><Copy size={14}/> لصق</button><button className="editor-button" onClick={() => removeSelected()} disabled={!selectedId || selectedId === 'root'}><Trash2 size={15}/> حذف</button><span className="toolbar-divider"/><button className="editor-icon-button" aria-label="تراجع" onClick={() => restoreHistory(-1)}><Undo2 size={17}/></button><button className="editor-icon-button" aria-label="إعادة" onClick={() => restoreHistory(1)}><Redo2 size={17}/></button><button className="editor-button" onClick={autoLayout}><LayoutGrid size={14}/> توزيع تلقائي</button><button className="editor-button" onClick={()=>setOutlineMode(!outlineMode)}>{outlineMode?<LayoutGrid size={14}/>:<ListTree size={14}/>} {outlineMode?'عرض الخريطة':'عرض القائمة'}</button><button className="editor-button" onClick={exportMarkdown}><FileText size={14}/> Markdown</button><button className="editor-button" onClick={()=>importInputRef.current?.click()}><FileUp size={14}/> استيراد JSON</button><input ref={importInputRef} hidden type="file" accept="application/json,.json" aria-label="ملف خريطة JSON" onChange={(event)=>{importMap(event.target.files?.[0]);event.currentTarget.value=''}}/><button className="editor-button" onClick={()=>window.print()}><Printer size={14}/> طباعة</button><span className="editor-help"><CircleHelp size={15}/> حدّد عقدة ثم اختر الإجراء. اسحب العقد لترتيبها.</span></div>
     {!outlineMode && <div className="editor-toolbar export-toolbar" aria-label="تصدير الخريطة"><span>تصدير كامل الخريطة:</span><button className="editor-button" title="تصدير PNG عالي الدقة" onClick={()=>void exportVisual('png')}><FileImage size={14}/> PNG</button><button className="editor-button" title="تصدير SVG" onClick={()=>void exportVisual('svg')}><FileImage size={14}/> SVG</button><button className="editor-button" title="تصدير PDF متعدد الصفحات" onClick={()=>void exportVisual('pdf')}><FileDown size={14}/> PDF</button><span className="export-selected-label">العقدة المحددة وفروعها:</span><span className="export-selected-label">العقدة وحدها:</span><button className="editor-button" disabled={!selectedId} title="تصدير العقدة PNG" onClick={()=>void exportVisual("png",true,true)}><FileImage size={14}/> PNG</button><button className="editor-button" disabled={!selectedId} title="تصدير العقدة SVG" onClick={()=>void exportVisual("svg",true,true)}><FileImage size={14}/> SVG</button><button className="editor-button" disabled={!selectedId} title="تصدير العقدة PDF" onClick={()=>void exportVisual("pdf",true,true)}><FileDown size={14}/> PDF</button><button className="editor-button" disabled={!selectedId} title="تصدير التحديد PNG" onClick={()=>void exportVisual('png',true)}><FileImage size={14}/> PNG</button><button className="editor-button" disabled={!selectedId} title="تصدير التحديد SVG" onClick={()=>void exportVisual('svg',true)}><FileImage size={14}/> SVG</button><button className="editor-button" disabled={!selectedId} title="تصدير التحديد PDF" onClick={()=>void exportVisual('pdf',true)}><FileDown size={14}/> PDF</button></div>}
-    {selectedId && <div className="editor-toolbar node-style-toolbar" aria-label="تنسيق العقدة المحددة"><span>تنسيق العقدة</span><select aria-label="شكل العقدة" value={nodes.find((node)=>node.id===selectedId)?.data.kind||'branch'} onChange={(event)=>setSelectedStyle({kind:event.target.value as MindKind})}><option value="branch">متفرعة</option><option value="rectangle">مستطيل</option><option value="circle">دائرية</option><option value="diamond">معيّن</option><option value="sticky">ملاحظة</option><option value="task">مهمة</option></select><select aria-label="لون العقدة" value={nodes.find((node)=>node.id===selectedId)?.data.color||'violet'} onChange={(event)=>setSelectedStyle({color:event.target.value as MindColor})}><option value="violet">بنفسجي</option><option value="blue">أزرق</option><option value="mint">أخضر</option><option value="amber">ذهبي</option></select><button className="editor-button" onClick={()=>toggleBranch(false)}><Shrink size={14}/> طي الفروع</button><button className="editor-button" onClick={()=>toggleBranch(true)}><Expand size={14}/> توسيع الفروع</button></div>}
+    {selectedId && <div className="editor-toolbar node-style-toolbar" aria-label="تنسيق العقدة المحددة"><span>تنسيق العقدة</span><select aria-label="شكل العقدة" value={nodes.find((node)=>node.id===selectedId)?.data.kind||'branch'} onChange={(event)=>setSelectedStyle({kind:event.target.value as MindKind})}><option value="branch">متفرعة</option><option value="rectangle">مستطيل</option><option value="circle">دائرية</option><option value="diamond">معيّن</option><option value="sticky">ملاحظة</option><option value="task">مهمة</option></select><select aria-label="لون العقدة" value={nodes.find((node)=>node.id===selectedId)?.data.color||'violet'} onChange={(event)=>setSelectedStyle({color:event.target.value as MindColor})}><option value="violet">بنفسجي</option><option value="blue">أزرق</option><option value="mint">أخضر</option><option value="amber">ذهبي</option></select><button className="editor-button" onClick={()=>void expandWithAi()} disabled={aiBusy}>{aiBusy?<LoaderCircle size={14} className="spin"/>:<Sparkles size={14}/>} توسيع بالذكاء</button><button className="editor-button" onClick={()=>toggleBranch(false)}><Shrink size={14}/> طي الفروع</button><button className="editor-button" onClick={()=>toggleBranch(true)}><Expand size={14}/> توسيع الفروع</button></div>}
     {outlineMode ? <section className="outline-canvas" aria-label="مخطط الخريطة الهيكلي"><ul>{(nodes.find((node)=>node.id==='root')??nodes[0])&&renderOutline((nodes.find((node)=>node.id==='root')??nodes[0]).id,0,new Set())}</ul></section> : <section className="canvas-wrap" aria-label="لوحة الخريطة الذهنية"><ReactFlow nodes={nodes} edges={edges} nodeTypes={nodeTypes} onInit={(instance)=>{flowInstance.current=instance}} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} onConnect={connect} onNodeClick={(_, node) => setSelectedId(node.id)} onPaneClick={() => setSelectedId(null)} onNodeDragStop={() => checkpoint(nodesRef.current, edgesRef.current)} fitView fitViewOptions={{ padding: 0.3 }} minZoom={0.2} maxZoom={2.2} proOptions={{ hideAttribution: true }}><Background color="#dbe0ec" gap={24} size={1}/><Controls position="bottom-left"/><MiniMap position="bottom-right" zoomable pannable nodeColor="#8d79ee"/></ReactFlow></section>}
     <footer className="editor-footer"><span>{nodes.length} عقدة · {edges.length} اتصال</span><span>Tab فرع تابع · Ctrl+D تكرار · Ctrl+C / X / V نسخ · Delete حذف · Ctrl+Z تراجع</span></footer>
     {notice&&<div className="toast" role="status">{notice}<button onClick={()=>setNotice('')}>حسناً</button></div>}
   </main>;
 }
+
