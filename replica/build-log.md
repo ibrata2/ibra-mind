@@ -15,7 +15,7 @@
 - Added a Supabase migration for owner-only projects and version history; app settings require the owner's public/publishable key and never accept a service-role key.
 - Preserved node shapes, colors and completion state in JSON exports; split editor/media code into lazy-loaded modules to reduce the startup bundle.
 - Added vision-provider OCR for image-only PDF pages, with a visible cap of 10 scanned pages and a warning that those images are sent to the selected provider.
-- Added tiled A4 PDF pages and selected-branch visual exports while preserving the full-map SVG/PNG/PDF actions.
+- Added tiled A4 PDF pages, selected-branch exports, and individual-node SVG/PNG/PDF exports while preserving full-map actions.
 - Changed Windows workflow so main branch pushes save installers as review artifacts; only version tags publish GitHub Releases.
 - Updated Electron to 45.2.1 after a security review; production dependency audit is clean. Permission handling grants one audio-only request after the app's recording action.
 - Updated README and feature matrix to describe capabilities and remaining gaps accurately.
@@ -29,8 +29,8 @@
 - Provider IPC smoke check passed for encrypted-key redaction, zero temperature, request/token counters, audio upload formatting and timestamp response handling.
 - Browser UI inspection confirmed all template categories render and the audio/document/image tools open their dialogs.
 - Desktop main/preload/provider scripts passed `node --check` before the latest provider error-counter edit; recheck before publishing.
-- Previous browser walkthrough confirmed dashboard navigation, mind map branch operations and outline mode, flowchart creation, whiteboard objects, settings/about, and AI provider availability messaging.
-- Local source is versioned 0.4.0. No v0.4.0 installer has been built or published; local Electron installation cannot be validated in this restricted Windows environment. Main-branch GitHub Actions now creates a 30-day review artifact and does not release partial builds.
+- Previous browser walkthrough confirmed dashboard navigation, mind map branch operations and outline mode, flowchart creation, whiteboard objects, settings/about, and AI provider availability messaging. Individual-node export now has PNG, SVG, and PDF actions; the production build and provider smoke check pass.
+- Local source is versioned 0.4.0. GitHub Actions built the Windows x64 installer successfully on 2026-10-31 and saved a 30-day review artifact; the workflow intentionally skipped creating a public release. Local Electron installation cannot be validated in this restricted Windows environment.
 
 ## Still required for the stated full product
 

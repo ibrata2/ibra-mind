@@ -34,6 +34,6 @@ Storage,Cloud backup restore and version history,must,partial,Manual Supabase up
 Accounts,Email sign up sign in and password recovery,must,partial,Supabase email/password flows; profile management and Google OAuth remain
 Collaboration,Share and live editing,should,missing,No invitation or real-time editing backend
 Templates,Template library,should,implemented,Searchable catalog with 12 categories and editable local maps
-Export,PNG SVG PDF and print,must,partial,Whole-map and selected-branch Arabic-aware SVG high-resolution PNG and tiled multi-page PDF; selected individual nodes and print paper controls remain
+Export,PNG SVG PDF and print,must,partial,Whole-map selected-branch and single-node Arabic-aware SVG high-resolution PNG and tiled multi-page PDF; custom print paper controls remain
 Accessibility,Arabic RTL and responsive layout,must,partial,RTL UI exists; broad keyboard/screen-reader audit still needed
 Windows installer,NSIS x64 setup,must,implemented,GitHub Actions release workflow
