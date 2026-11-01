@@ -4,6 +4,7 @@
 - Added sequential OCR batches for scanned PDFs and AI expansion of selected mind-map nodes with undo support.
 - Added AI flowchart generation that validates model-provided shapes and connections before adding them to the canvas.
 - Added Custom REST provider request templates, configurable API-key header/prefix, and response text/token-usage paths.
+- Added task-routed selected-node AI actions for summarizing, rewriting, translation, explanation, brainstorming, and study questions with editable preview and undoable application.
 - Applied the supplied IBRA MIND icon to the Windows app and installer, Electron window, web favicon, dashboard, and About screen.
 - Preserve VTT/SRT cue start times while extracting YouTube subtitles, so the AI receives timestamped content for key ideas and chapter branches.
 - Added optional Supabase account setup, email/password registration and login, Google OAuth entry point, editable name/avatar profile, encrypted desktop auth sessions, password recovery, manual backup/restore, project history, and owner-only database RLS migration.
