@@ -11,6 +11,7 @@ Mind map,Outline mode,must,implemented,Recursive outline editor
 Mind map,Node shapes colors and task status,should,implemented,Node toolbar and persisted metadata
 Mind map,Collapse and expand branch,should,implemented,Hidden descendants and edges
 AI studio,Expand selected mind map branch,must,implemented,Selected node expansion through task-routed provider; returned hierarchy validated and added as undoable nodes
+AI studio,Selected-node AI assistant,must,partial,Task-routed summarize rewrite translate explain brainstorm and study-question actions; preview results then replace node text or add children; needs live-provider interaction verification
 Mind map,Autosave and restore,must,implemented,IndexedDB project document store
 Mind map,JSON import and export,must,implemented,Validated import and download
 Mind map,Markdown export and print,should,implemented,Hierarchy export and browser print
