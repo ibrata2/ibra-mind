@@ -59,3 +59,5 @@ Run `npm ci`, `npm run build`, `npm run test:smoke`, `npm run test:captions`, an
 
 - Cross-project search implementation passes build, provider smoke, caption parsing, and production audit. Manual browser verification of result selection and refresh-after-edit remains pending.
 
+- GitHub Actions run 41300656431 passed after adding dashboard content search; this verifies build and packaged dashboard startup, not result click-through.
+
