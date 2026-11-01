@@ -60,8 +60,9 @@ function createWindow() {
       .catch((error) => { process.stderr.write(`IBRA_MIND_RENDERER_ERROR ${error.message}\n`); process.exitCode = 1; app.quit(); });
   });
   if (process.env.IBRA_MIND_SMOKE === '1') {
-    mainWindow.webContents.on('console-message', (_event, details) => process.stderr.write(`RENDERER_CONSOLE ${details.message}\n`));
+    mainWindow.webContents.on('console-message', (_event, level, message, line, sourceId) => process.stderr.write(`RENDERER_CONSOLE level=${level} ${message} (${sourceId}:${line})\n`));
     mainWindow.webContents.on('did-fail-load', (_event, code, description, url) => process.stderr.write(`RENDERER_LOAD_FAILED ${code} ${description} ${url}\n`));
+    mainWindow.webContents.on('render-process-gone', (_event, details) => process.stderr.write(`RENDERER_GONE ${details.reason} exit=${details.exitCode}\n`));
   }
   if (!app.isPackaged) {
     mainWindow.loadURL('http://127.0.0.1:5173');
