@@ -40,6 +40,7 @@ Run `npm ci`, `npm run build`, `npm run test:smoke`, `npm run test:captions`, an
 
 ## Verification run in current workspace
 
+- `npm run build`, `npm run test:smoke`, `npm run test:captions`, and `npm audit --omit=dev` passed after adding node search. GitHub Actions run 41299290946 passed Windows installer packaging and the packaged dashboard renderer check; node-search click-through and collapsed-path navigation still need interactive verification.
 - `npm run build` — passed; TypeScript and Vite production build succeeded.
 - `npm run test:smoke` — passed; provider service smoke checks succeeded.
 - `npm run test:captions` — passed; VTT/SRT cue timestamps retained.
