@@ -42,4 +42,5 @@ Run `npm ci`, `npm run build`, `npm run test:smoke`, `npm run test:captions`, an
 - `npm audit --omit=dev` — passed; no production dependency vulnerabilities.
 - GitHub Actions run 41293867477 built the Windows x64 installer and confirmed the packaged dashboard rendered before saving the review artifact. A clean Windows 10/11 installation, microphone permission, and `ibramind://` callback still need manual device verification. Live Supabase auth/RLS also need an owner-configured project.
 - AI node expansion has passed TypeScript and Vite production compilation; interactive provider-backed validation remains in the manual test list above.
+- GitHub Actions run 41295377567 — passed on Windows; packaged dashboard renderer passed and installer review artifact was saved. This smoke check does not exercise flowchart generation with an external AI credential.
 
