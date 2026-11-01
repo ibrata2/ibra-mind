@@ -91,4 +91,39 @@ if (hasSingleInstance) app.whenReady().then(() => {
     microphonePermissionArmed = true;
     return { ok: true };
   });
-  ipcMain.handle('auth:take-pend
+  ipcMain.handle('auth:take-pending', (event) => {
+    if (!isAppOrigin(event.sender.getURL())) return '';
+    const value = pendingAuthUrl;
+    pendingAuthUrl = '';
+    return value;
+  });
+  ipcMain.handle('auth:ack', (event, value) => {
+    if (!isAppOrigin(event.sender.getURL())) return { ok: false };
+    if (pendingAuthUrl === value) pendingAuthUrl = '';
+    return { ok: true };
+  });
+  const authStorageFile = () => path.join(app.getPath('userData'), 'auth-session.enc');
+  const authStorage = createEncryptedAuthStorage({ safeStorage, filePath: authStorageFile });
+  ipcMain.handle('auth:storage:get', (event, key) => {
+    if (!isAppOrigin(event.sender.getURL())) return null;
+    return authStorage.get(key);
+  });
+  ipcMain.handle('auth:storage:set', (event, key, value) => {
+    if (!isAppOrigin(event.sender.getURL())) throw new Error('مصدر التطبيق غير صالح.');
+    authStorage.set(key, value);
+  });
+  ipcMain.handle('auth:storage:remove', (event, key) => {
+    if (!isAppOrigin(event.sender.getURL())) throw new Error('مصدر التطبيق غير صالح.');
+    authStorage.remove(key);
+  });
+  createProviderService({ app, ipcMain, safeStorage });
+  createWindow();
+  app.on('activate', () => {
+    if (BrowserWindow.getAllWindows().length === 0) createWindow();
+  });
+});
+
+app.on('window-all-closed', () => {
+  if (process.platform !== 'darwin') app.quit();
+});
+
