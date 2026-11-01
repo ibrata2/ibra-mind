@@ -5,6 +5,7 @@ Run `npm ci`, `npm run build`, `npm run test:smoke`, `npm run test:captions`, an
 ## Local workspace and maps
 
 - Create, rename, favorite, search, filter, open and delete local projects; confirm all three project types save independently.
+- Search for Arabic and English text stored in mind-map, flowchart, and whiteboard nodes; confirm results identify the project and snippet, open the correct project, ignore malformed documents, and update after edits.
 - Edit Arabic/English labels, create child/sibling branches, connect nodes, duplicate, cut, copy, paste, delete, undo, redo, collapse/expand, and arrange; reload to confirm IndexedDB restoration.
 - Search Arabic and English labels; cycle through multiple matches; confirm canvas focus and result counts; locate a node beneath collapsed ancestors and verify the path opens; repeat in outline mode and verify the row scrolls into view.
 - Select an edge and change its curve type, color, width, dashed setting, end arrow, and label; verify undo/redo, JSON export/import, and close/reopen persistence.
@@ -55,4 +56,6 @@ Run `npm ci`, `npm run build`, `npm run test:smoke`, `npm run test:captions`, an
 - Cloud conflict handling is implemented but not yet run against Supabase. Run the two-session conflict, stale RPC, and snapshot-history scenario above after applying the migration.
 
 - GitHub Actions run 41299809303 passed provider/security smoke checks and Windows packaged-dashboard rendering after the cloud conflict changes; it does not exercise Supabase behavior.
+
+- Cross-project search implementation passes build, provider smoke, caption parsing, and production audit. Manual browser verification of result selection and refresh-after-edit remains pending.
 
