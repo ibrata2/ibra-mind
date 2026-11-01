@@ -26,6 +26,7 @@
 ## Verification
 
 - `npm run build` passes after the current mind map UI changes.
+- The node-search implementation passes TypeScript/Vite production build, provider smoke checks, caption parsing checks, and production dependency audit; manual interactive search and collapsed-branch navigation verification remains pending.
 - The browser walkthrough extracted Arabic text from a local TXT sample. PDF, DOCX, XLSX, and PPTX fixtures still need manual runtime validation. Image-only PDF OCR now supports sequential batches beyond page 10, but needs a multi-batch scanned-PDF fixture run.
 - `npm audit --omit=dev --json` reported no production dependency vulnerabilities after replacing the vulnerable `xlsx` package with `read-excel-file`.
 - Supabase cloud settings UI was rendered in the browser; it correctly asks for the user's URL and public key. A live login, database policy, and restore test is pending a Supabase project.
@@ -44,6 +45,8 @@ Remaining product work includes manual multi-batch OCR fixture verification, aut
 - Added AI flowchart generation with task-specific provider routing, strict node/edge validation, and non-destructive insertion into the existing canvas.
 - Added configurable Custom REST providers with JSON request templates, variable substitution, configurable API-key header/prefix, response text/token-usage mapping, endpoint validation, and provider usage tracking; API keys remain in encrypted desktop storage.
 - Added a selected-node AI assistant for summarize, rewrite, translate, explain, brainstorm, and study questions. It uses task routing, includes branch context, previews editable output, and can replace the selected label or append child nodes with undo support.
+- Added selectable mind-map edge styling for four path types, stroke color/width, dashed lines, target arrows, and labels; formatting edits enter undo history and remain in project JSON.
+- Added Arabic/English mind-map node-title search, previous/next result navigation, canvas camera focus, outline scrolling, and automatic reveal of collapsed ancestors.
 - GitHub Actions run 41295377567 passed on Windows, confirmed the packaged dashboard renderer, and saved the installer review artifact (149 MB; expires 2026-12-01).
 - GitHub Actions run 41296910241 passed after adding Custom REST providers; provider/security smoke checks, Windows installer build, packaged renderer verification, and installer artifact upload all succeeded.
 - GitHub Actions run 41297671955 passed after adding the selected-node AI assistant; Windows installer build, packaged dashboard renderer, and review artifact upload succeeded. Provider-backed assistant actions still need a live-key click-through.
