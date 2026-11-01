@@ -1,9 +1,11 @@
 area,feature,priority,status,evidence_or_gap
 Dashboard,Create and open local projects,must,implemented,App project store and editor navigation
 Dashboard,Search projects,must,implemented,Title search on dashboard
+Mind map,Search nodes and navigate results,must,implemented,"Search Arabic or English node titles; cycle through matches; focus the canvas or scroll outline; reveal collapsed ancestors"
 Dashboard,Favorites and recent views,should,implemented,Project filters and local metadata
 Mind map,Edit nodes and create branch/sibling,must,implemented,React Flow canvas editor
 Mind map,Connect nodes,must,implemented,React Flow connection callback
+Mind map,Format edges,should,partial,"Selectable connection supports Bezier/smoothstep/orthogonal/straight paths; color; width; dashed stroke; end arrow; and label. Source arrow and connection-point controls remain"
 Mind map,Duplicate copy cut paste and delete,must,implemented,Subtree clipboard actions
 Mind map,Undo redo,must,implemented,Structural history stack
 Mind map,Drag and automatic layout,must,implemented,Drag stop checkpoint and tree arrangement
