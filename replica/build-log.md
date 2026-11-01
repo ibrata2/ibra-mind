@@ -43,6 +43,7 @@ Remaining product work includes manual multi-batch OCR fixture verification, aut
 - The editor's AI expansion action requests a schema-checked submap from the configured expansion provider, appends it to the selected node, and records it in undo history.
 - Added AI flowchart generation with task-specific provider routing, strict node/edge validation, and non-destructive insertion into the existing canvas.
 - Added configurable Custom REST providers with JSON request templates, variable substitution, configurable API-key header/prefix, response text/token-usage mapping, endpoint validation, and provider usage tracking; API keys remain in encrypted desktop storage.
+- Added a selected-node AI assistant for summarize, rewrite, translate, explain, brainstorm, and study questions. It uses task routing, includes branch context, previews editable output, and can replace the selected label or append child nodes with undo support.
 - GitHub Actions run 41295377567 passed on Windows, confirmed the packaged dashboard renderer, and saved the installer review artifact (149 MB; expires 2026-12-01).
 - GitHub Actions run 41296910241 passed after adding Custom REST providers; provider/security smoke checks, Windows installer build, packaged renderer verification, and installer artifact upload all succeeded.
 
