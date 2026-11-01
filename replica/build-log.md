@@ -48,7 +48,10 @@ Remaining product work includes manual multi-batch OCR fixture verification, aut
 - Added a selected-node AI assistant for summarize, rewrite, translate, explain, brainstorm, and study questions. It uses task routing, includes branch context, previews editable output, and can replace the selected label or append child nodes with undo support.
 - Added selectable mind-map edge styling for four path types, stroke color/width, dashed lines, target arrows, and labels; formatting edits enter undo history and remain in project JSON.
 - Added Arabic/English mind-map node-title search, previous/next result navigation, canvas camera focus, outline scrolling, and automatic reveal of collapsed ancestors.
+- Added cloud upload conflict detection with non-destructive choices to keep local and cloud versions as separate projects; the SQL save function uses a per-project transaction lock and expected timestamp to reject stale writes and stores the prior cloud content before updating.
 - GitHub Actions run 41295377567 passed on Windows, confirmed the packaged dashboard renderer, and saved the installer review artifact (149 MB; expires 2026-12-01).
 - GitHub Actions run 41296910241 passed after adding Custom REST providers; provider/security smoke checks, Windows installer build, packaged renderer verification, and installer artifact upload all succeeded.
 - GitHub Actions run 41297671955 passed after adding the selected-node AI assistant; Windows installer build, packaged dashboard renderer, and review artifact upload succeeded. Provider-backed assistant actions still need a live-key click-through.
+
+- Cloud conflict handling passes TypeScript/Vite build, provider smoke checks, and production dependency audit. Live conflict, concurrency, RLS, and version-history behavior still needs a user-owned Supabase project.
 
