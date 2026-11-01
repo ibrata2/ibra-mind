@@ -8,6 +8,7 @@ Run `npm ci`, `npm run build`, `npm run test:smoke`, `npm run test:captions`, an
 - Edit Arabic/English labels, create child/sibling branches, connect nodes, duplicate, cut, copy, paste, delete, undo, redo, collapse/expand, and arrange; reload to confirm IndexedDB restoration.
 - Change node shape, color and task state; export/import JSON and confirm metadata persists.
 - Select a node, invoke AI expansion with an expansion-routed provider, confirm returned child hierarchy is appended, autosaved, and reverted with Undo; verify invalid JSON and provider failures leave the map unchanged.
+- For the node AI assistant, exercise summarize, rewrite, translate to a chosen language, explain, brainstorm, and study-question actions using task-routed models; edit the preview, copy, replace the selected label, add multiple children, reload for autosave, and undo each applied change.
 - Toggle outline mode and return; confirm hierarchy and labels remain intact.
 - Export full and selected map as SVG, PNG and PDF; confirm Arabic rendering, branch selection, multiple pages for tall/wide maps and page numbering.
 - Check project export/print and browser resizing at desktop and narrow viewports.
