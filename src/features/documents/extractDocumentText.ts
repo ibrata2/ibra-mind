@@ -3,7 +3,7 @@ export type ExtractedDocument = { text: string; sourceName: string; pages?: numb
 const MAX_BYTES = 25 * 1024 * 1024;
 const MAX_TEXT = 250_000;
 
-export async function extractDocumentText(file: File): Promise<ExtractedDocument> {
+export async function extractDocumentText(file: File, scanFromPage = 1): Promise<ExtractedDocument> {
   if (file.size === 0) throw new Error('الملف فارغ.');
   if (file.size > MAX_BYTES) throw new Error('حجم الملف أكبر من 25 ميغابايت.');
   const ext = file.name.split('.').pop()?.toLowerCase() || '';
@@ -18,13 +18,20 @@ export async function extractDocumentText(file: File): Promise<ExtractedDocument
     const pdfDocument = await pdfjs.getDocument({ data: await file.arrayBuffer(), useSystemFonts: true }).promise;
     pages = pdfDocument.numPages;
     const sections: string[] = [];
+    let extractedChars = 0;
     for (let pageNumber = 1; pageNumber <= pdfDocument.numPages; pageNumber += 1) {
       const page = await pdfDocument.getPage(pageNumber);
       const content = await page.getTextContent();
       const lines = content.items.flatMap((item) => 'str' in item && item.str ? [item.str] : []);
       const pageText = lines.join(' ').trim();
-      if (pageText.length >= 20) sections.push(`[صفحة ${pageNumber}]\n${pageText}`);
-      else if (scannedPages.length < 10) {
+      if (pageText.length >= 20) {
+        if (extractedChars < MAX_TEXT) {
+          const section = `[صفحة ${pageNumber}]\n${pageText}`;
+          sections.push(section);
+          extractedChars += section.length;
+        }
+      }
+      else if (pageNumber >= Math.max(1, Math.floor(scanFromPage)) && scannedPages.length < 10) {
         const original = page.getViewport({ scale: 1 });
         const scale = Math.min(1.6, 1800 / original.width, 1800 / original.height);
         const viewport = page.getViewport({ scale });
@@ -39,8 +46,7 @@ export async function extractDocumentText(file: File): Promise<ExtractedDocument
           if (imageDataUrl.length > 14_000_000) throw new Error(`صورة صفحة PDF ${pageNumber} أكبر من حد الإرسال الآمن.`);
           scannedPages.push({ pageNumber, imageDataUrl });
         }
-      } else moreScannedPages = true;
-      if (sections.join('\n').length > MAX_TEXT) break;
+      } else if (pageNumber >= Math.max(1, Math.floor(scanFromPage))) moreScannedPages = true;
     }
     text = sections.join('\n\n');
   } else if (ext === 'docx') {
@@ -71,3 +77,4 @@ export async function extractDocumentText(file: File): Promise<ExtractedDocument
   if (text.length > MAX_TEXT) text = `${text.slice(0, MAX_TEXT)}\n[تم الاقتصار على أول 250,000 حرف.]`;
   return { text, sourceName: file.name, pages, scannedPages: scannedPages.length ? scannedPages : undefined, moreScannedPages };
 }
+
