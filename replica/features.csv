@@ -21,7 +21,7 @@ Whiteboard,Image add resize group lock and layers,should,implemented,Local image
 AI providers,Secure encrypted credentials,must,implemented,Electron safeStorage main-process service
 AI providers,Test connection,must,implemented,Provider-specific request and response
 AI providers,Model routing and usage counters,should,partial,Routing saved locally; token data depends on provider response
-AI providers,Provider breadth,must,partial,OpenAI-compatible presets cover OpenAI DeepSeek OpenRouter Groq Mistral and Ollama; native Gemini and Anthropic protocols; custom REST response mapping not available
+AI providers,Provider breadth,must,partial,OpenAI-compatible presets cover OpenAI DeepSeek OpenRouter Groq Mistral and Ollama; native Gemini and Anthropic; custom REST JSON body templates, configurable API-key headers, and response paths supported, but model discovery is provider-specific
 AI map generation,Generate and validate hierarchy,must,implemented,Provider request and schema validation
 Templates,Search category and save favorites,should,implemented,Local template catalog with 12 categories and map generation
 Documents,PDF DOCX PPTX XLSX TXT Markdown CSV extraction,must,implemented,Local extraction with file-size and text limits; AI chunk summaries then mind map
