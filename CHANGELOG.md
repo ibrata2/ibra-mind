@@ -1,6 +1,7 @@
 # Changelog
 
 ## 0.4.0 — Local project suite, AI, media, export and cloud accounts
+- Expanded dashboard search to scan saved mind-map, flowchart, and whiteboard node text and open matching projects directly.
 - Added cloud conflict detection before uploads, separate-copy resolution choices, stale-write protection, and preservation of the previous cloud revision.
 - Added mind-map node search with previous/next navigation, result count, camera focus, and automatic reveal of collapsed ancestors.
 - Added sequential OCR batches for scanned PDFs and AI expansion of selected mind-map nodes with undo support.
