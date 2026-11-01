@@ -1,12 +1,19 @@
 import { useEffect, useState } from 'react';
 import { Cloud, Download, History, LogOut, RefreshCw, ShieldCheck, Upload } from 'lucide-react';
-import { createProject, listProjects } from '../projects/projectStore';
+import { createProject, listProjects, type ProjectRecord } from '../projects/projectStore';
 import { loadDocument, saveDocument } from '../storage/documentStore';
 import { getCloudClient, readCloudConfig, saveCloudConfig, type CloudConfig } from './supabase';
 import { PASSWORD_RECOVERY_KEY } from './authCallback';
 
 type CloudProject = { id: string; title: string; kind: 'mindmap' | 'flowchart' | 'whiteboard'; content: unknown; updated_at: string };
 type CloudVersion = { id: string; project_id: string; title: string; content: unknown; created_at: string };
+type CloudConflict = { local: ProjectRecord; remote: CloudProject; localContent: unknown };
+
+function stableJson(value: unknown): string {
+  if (Array.isArray(value)) return `[${value.map(stableJson).join(',')}]`;
+  if (value && typeof value === 'object') return `{${Object.entries(value).sort(([left], [right]) => left.localeCompare(right)).map(([key, item]) => `${JSON.stringify(key)}:${stableJson(item)}`).join(',')}}`;
+  return JSON.stringify(value) ?? 'null';
+}
 
 function message(error: unknown) {
   const text = error instanceof Error ? error.message : 'حدث خطأ غير معروف.';
@@ -33,6 +40,7 @@ export default function CloudAccount() {
   const [versions, setVersions] = useState<CloudVersion[]>([]);
   const [selected, setSelected] = useState('');
   const [localProjectId, setLocalProjectId] = useState('');
+  const [conflict, setConflict] = useState<CloudConflict | null>(null);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState('');
 
@@ -139,10 +147,51 @@ export default function CloudAccount() {
     const raw = await loadDocument(local.id);
     if (!raw) throw new Error('هذا الملف لا يحتوي على محتوى محفوظ.');
     const content = JSON.parse(raw) as unknown;
-    const { error } = await client.rpc('save_ibra_project', { p_project_id: local.id, p_title: local.title, p_kind: local.kind, p_content: content });
-    if (error) throw error;
+    const { data: remote, error: lookupError } = await client.from('ibra_projects').select('id,title,kind,content,updated_at').eq('id', local.id).maybeSingle();
+    if (lookupError) throw lookupError;
+    if (remote && stableJson(remote.content) !== stableJson(content)) {
+      setConflict({ local, remote: remote as CloudProject, localContent: content });
+      setNotice('اكتشفنا نسخة سحابية مختلفة. اختر طريقة تحفظ النسختين قبل المتابعة.');
+      return;
+    }
+    const { error } = await client.rpc('save_ibra_project', { p_project_id: local.id, p_title: local.title, p_kind: local.kind, p_content: content, p_expected_updated_at: remote?.updated_at ?? null });
+    if (error) {
+      if (/IBRA_SYNC_CONFLICT/.test(error.message)) {
+        const { data: latest } = await client.from('ibra_projects').select('id,title,kind,content,updated_at').eq('id', local.id).maybeSingle();
+        if (latest) setConflict({ local, remote: latest as CloudProject, localContent: content });
+        setNotice('تغيرت النسخة السحابية أثناء الرفع. اختر الاحتفاظ بالنسختين ثم أعد المحاولة.');
+        return;
+      }
+      throw error;
+    }
     await loadCloudProjects();
     setNotice('رُفع الملف إلى حسابك وحُفظت نسخة استرجاع.');
+  });
+
+  const keepBothCloudCopies = () => run(async () => {
+    if (!conflict) return;
+    const client = getCloudClient();
+    if (!client) throw new Error('إعداد السحابة غير مكتمل.');
+    const { error } = await client.rpc('save_ibra_project', {
+      p_project_id: crypto.randomUUID(),
+      p_title: `${conflict.local.title} · نسخة محلية`,
+      p_kind: conflict.local.kind,
+      p_content: conflict.localContent,
+      p_expected_updated_at: null,
+    });
+    if (error) throw error;
+    setConflict(null);
+    await loadCloudProjects();
+    setNotice('حُفظت النسخة المحلية كملف سحابي مستقل؛ النسخة السحابية الأصلية بقيت كما هي.');
+  });
+
+  const keepBothLocalCopies = () => run(async () => {
+    if (!conflict) return;
+    const localCopy = createProject(`${conflict.remote.title} · نسخة سحابية`, conflict.remote.kind);
+    await saveDocument(localCopy.id, typeof conflict.remote.content === 'string' ? conflict.remote.content : JSON.stringify(conflict.remote.content));
+    window.dispatchEvent(new Event('ibra:projects-changed'));
+    setConflict(null);
+    setNotice('استُعيدت النسخة السحابية كملف محلي مستقل؛ ملفك المحلي الأصلي بقي كما هو.');
   });
 
   const loadVersions = (projectId: string) => run(async () => {
@@ -182,6 +231,7 @@ export default function CloudAccount() {
       {signedIn&&<div className="cloud-sync">
         <div className="cloud-local-upload"><label>الملف المحلي<select value={localProjectId} onChange={(event)=>setLocalProjectId(event.target.value)}><option value="">اختر ملفاً لرفعه</option>{listProjects().map((project)=><option key={project.id} value={project.id}>{project.title}</option>)}</select></label><button className="editor-button primary" disabled={busy||!localProjectId} onClick={()=>void pushLocal()}><Upload size={14}/> رفع وحفظ نسخة</button></div>
         <div className="cloud-list-heading"><b>ملفات الحساب</b><button className="editor-button" disabled={busy} onClick={()=>void refreshProjects()}><RefreshCw size={14}/> مزامنة القائمة</button></div>
+        {conflict&&<div className="cloud-conflict" role="alert"><b>النسخة المحلية والسحابية مختلفتان</b><p>لم نرفع فوق أي نسخة. اختر الاحتفاظ بالاثنتين كملفين منفصلين.</p><div><button className="editor-button" disabled={busy} onClick={()=>setConflict(null)}>إلغاء</button><button className="editor-button" disabled={busy} onClick={()=>void keepBothLocalCopies()}>استعادة السحابة كملف محلي</button><button className="editor-button primary" disabled={busy} onClick={()=>void keepBothCloudCopies()}>حفظ المحلي كملف سحابي جديد</button></div></div>}
         {projects.map((project)=><article className="cloud-project" key={project.id}><span><b>{project.title}</b><small>{new Intl.DateTimeFormat('ar-IQ',{dateStyle:'medium',timeStyle:'short'}).format(new Date(project.updated_at))}</small></span><div><button className="editor-button" disabled={busy} onClick={()=>void restore(project)}><Download size={14}/> استعادة</button><button className="editor-button" disabled={busy} onClick={()=>void loadVersions(project.id)}><History size={14}/> النسخ</button></div></article>)}
         {selected&&versions.map((version)=><article className="cloud-version" key={version.id}><span>{new Intl.DateTimeFormat('ar-IQ',{dateStyle:'medium',timeStyle:'short'}).format(new Date(version.created_at))}</span><button className="editor-button" disabled={busy} onClick={()=>void restore(version)}><Download size={14}/> استعادة النسخة</button></article>)}
       </div>}
@@ -190,3 +240,4 @@ export default function CloudAccount() {
     {busy&&<small>جارٍ الاتصال…</small>}
   </section>;
 }
+
