@@ -46,4 +46,5 @@ Run `npm ci`, `npm run build`, `npm run test:smoke`, `npm run test:captions`, an
 - AI node expansion has passed TypeScript and Vite production compilation; interactive provider-backed validation remains in the manual test list above.
 - GitHub Actions run 41295377567 — passed on Windows; packaged dashboard renderer passed and installer review artifact was saved. This smoke check does not exercise flowchart generation with an external AI credential.
 - `npm run test:smoke` now covers non-OpenAI custom REST request variables, x-api-key auth, nested text/token mapping, rejection of unsafe mapping paths, and secret redaction. GitHub Actions run 41296910241 passed including the packaged dashboard and installer artifact.
+- `npm run build` passed with the node AI assistant. GitHub Actions run 41297671955 passed the Windows installer build and packaged dashboard renderer. The assistant's real provider-backed summarize/rewrite/translate/explain/brainstorm/question interactions remain a manual credentialed check.
 
