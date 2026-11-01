@@ -1,0 +1,13 @@
+node_modules/
+dist/
+.npm-cache/
+.electron-cache/
+release/
+outputs/
+work/
+tsconfig.tsbuildinfo
+.env
+.env.*
+!.env.example
+*.log
+.DS_Store
