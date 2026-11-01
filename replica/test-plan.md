@@ -22,6 +22,7 @@ Run `npm ci`, `npm run build`, `npm run test:smoke`, `npm run test:captions`, an
 ## AI and media
 
 - Run provider service smoke test: encrypted-key redaction, zero temperature, request/token counters and transcription segments.
+- Test Custom REST with a non-OpenAI request body and nested response mapping; verify variables preserve JSON types, configurable x-api-key and Bearer header modes, token usage updates, key redaction, invalid variables/mapping paths are rejected, and custom model discovery explains its manual-model limitation.
 - With user-supplied API credentials, test provider connection, generation, model routing, failures, timeout behavior, and response validation; check credentials never appear in renderer, logs or exports.
 - Extract Arabic/English fixtures for text PDF, DOCX, PPTX, XLSX, TXT/Markdown/CSV; test size limits, malformed files, OCR for scanned PDF pages in sequential batches of up to 10 pages, including more than 10 image-only pages, retry without duplicate page requests, text/image mixed PDFs, page references, and chunked AI analysis.
 - Test image-to-map with a vision model; test audio upload and microphone permission, transcription and transcript-to-map; test pasted/VTT/SRT YouTube captions, confirm cue start times reach the AI prompt and appear in generated branches, and check invalid links.
