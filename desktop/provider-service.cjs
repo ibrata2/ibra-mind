@@ -3,11 +3,16 @@ const path = require('node:path');
 const { randomUUID } = require('node:crypto');
 
 const STORE_NAME = 'ai-providers.secure.json';
-const protocols = new Set(['openai-compatible', 'gemini', 'anthropic']);
+const protocols = new Set(['openai-compatible', 'gemini', 'anthropic', 'custom-rest']);
 
 function publicProvider(provider) {
-  const { encryptedApiKey, customHeaders, ...metadata } = provider;
-  return { ...metadata, hasApiKey: Boolean(encryptedApiKey), hasCustomHeaders: Boolean(customHeaders && Object.keys(customHeaders).length) };
+  const { encryptedApiKey, customHeaders, customRequestTemplate, customResponseMapping, ...metadata } = provider;
+  return {
+    ...metadata,
+    customRequestTemplate: customRequestTemplate ? JSON.stringify(customRequestTemplate) : undefined,
+    customResponseMapping: customResponseMapping ? JSON.stringify(customResponseMapping) : undefined,
+    hasApiKey: Boolean(encryptedApiKey), hasCustomHeaders: Boolean(customHeaders && Object.keys(customHeaders).length),
+  };
 }
 
 function parseCustomHeaders(raw) {
@@ -25,6 +30,51 @@ function parseCustomHeaders(raw) {
   }
   if (Object.keys(headers).length > 20) throw new Error('الحد الأقصى للرؤوس الإضافية هو 20.');
   return headers;
+}
+
+const defaultRestTemplate = { model: '{{model}}', messages: '{{messages}}', max_tokens: '{{maxTokens}}', temperature: '{{temperature}}' };
+const defaultRestMapping = { textPath: 'choices.0.message.content', tokenUsagePath: 'usage.total_tokens' };
+const restVariables = new Set(['model', 'messages', 'maxTokens', 'temperature', 'system', 'lastUserMessage']);
+
+function parseRestConfig(input, old) {
+  const read = (raw, fallback, label) => {
+    if (!raw || !String(raw).trim()) return fallback;
+    let value;
+    try { value = typeof raw === 'string' ? JSON.parse(raw) : raw; } catch { throw new Error(`${label} يجب أن يكون JSON صالحاً.`); }
+    if (!value || typeof value !== 'object' || Array.isArray(value) || JSON.stringify(value).length > 12000) throw new Error(`${label} يجب أن يكون كائناً بحجم لا يتجاوز 12 كيلوبايت.`);
+    return value;
+  };
+  const requestTemplate = read(input.customRequestTemplate, old?.customRequestTemplate || defaultRestTemplate, 'قالب الطلب');
+  const responseMapping = read(input.customResponseMapping, old?.customResponseMapping || defaultRestMapping, 'خريطة الاستجابة');
+  const visit = (value, depth = 0) => {
+    if (depth > 12) throw new Error('قالب الطلب متداخل بعمق زائد.');
+    if (typeof value === 'string') {
+      for (const [, variable] of value.matchAll(/\{\{([^{}]+)\}\}/g)) if (!restVariables.has(variable)) throw new Error(`المتغير {{${variable}}} غير معروف في قالب الطلب.`);
+    } else if (Array.isArray(value)) value.forEach((item) => visit(item, depth + 1));
+    else if (value && typeof value === 'object') Object.values(value).forEach((item) => visit(item, depth + 1));
+  };
+  visit(requestTemplate);
+  if (typeof responseMapping.textPath !== 'string' || !responseMapping.textPath.trim() || responseMapping.textPath.length > 300 || /(^|\.)(__proto__|prototype|constructor)(\.|$)/.test(responseMapping.textPath)) throw new Error('مسار نص الاستجابة غير صالح.');
+  if (responseMapping.tokenUsagePath !== undefined && (typeof responseMapping.tokenUsagePath !== 'string' || responseMapping.tokenUsagePath.length > 300 || /(^|\.)(__proto__|prototype|constructor)(\.|$)/.test(responseMapping.tokenUsagePath))) throw new Error('مسار استخدام الرموز غير صالح.');
+  return { customRequestTemplate: requestTemplate, customResponseMapping: responseMapping };
+}
+
+function resolveTemplate(value, variables) {
+  if (Array.isArray(value)) return value.map((item) => resolveTemplate(item, variables));
+  if (value && typeof value === 'object') return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, resolveTemplate(item, variables)]));
+  if (typeof value !== 'string') return value;
+  const exact = value.match(/^\{\{([^{}]+)\}\}$/);
+  if (exact) return variables[exact[1]];
+  return value.replace(/\{\{([^{}]+)\}\}/g, (_, key) => {
+    const replacement = variables[key];
+    if (replacement === undefined || replacement === null || typeof replacement === 'object') throw new Error(`لا يمكن إدراج {{${key}}} كنص داخل قيمة JSON.`);
+    return String(replacement);
+  });
+}
+
+function readMappedValue(value, pathExpression) {
+  if (!pathExpression) return undefined;
+  return pathExpression.split('.').reduce((current, key) => current == null ? undefined : current[key], value);
 }
 
 function sanitizeProviderError(value, provider, apiKey) {
@@ -71,8 +121,15 @@ function createProviderService({ app, ipcMain, safeStorage }) {
     try { url = new URL(rawUrl); } catch { throw new Error('رابط API غير صالح.'); }
     if (!['https:', 'http:'].includes(url.protocol)) throw new Error('استخدم رابط HTTPS أو HTTP محلياً لخادم Ollama.');
     if (url.protocol === 'http:' && !['localhost', '127.0.0.1', '[::1]'].includes(url.hostname)) throw new Error('يُسمح برابط HTTP للخوادم المحلية فقط. استخدم HTTPS للخدمات الخارجية.');
+    const apiKeyHeader = String(input.apiKeyHeader || 'Authorization').trim();
+    const apiKeyPrefix = input.apiKeyPrefix === undefined ? (apiKeyHeader.toLowerCase() === 'authorization' ? 'Bearer' : '') : String(input.apiKeyPrefix).trim();
+    if (protocol === 'custom-rest' && (!/^[!#$%&'*+.^_`|~0-9a-z-]+$/i.test(apiKeyHeader) || ['content-type', 'host', 'content-length'].includes(apiKeyHeader.toLowerCase()))) throw new Error('اسم رأس مفتاح API غير صالح.');
+    if (protocol === 'custom-rest' && (/[\r\n]/.test(apiKeyPrefix) || apiKeyPrefix.length > 32)) throw new Error('بادئة مفتاح API غير صالحة.');
+    const rest = protocol === 'custom-rest' ? parseRestConfig(input, null) : {};
     return {
       id: String(input.id || randomUUID()), name: name.slice(0, 100), baseUrl: url.toString().replace(/\/$/, ''), model: model.slice(0, 200), protocol,
+      ...(protocol === 'custom-rest' ? { apiKeyHeader, apiKeyPrefix } : {}),
+      ...rest,
       enabled: input.enabled !== false, isDefault: Boolean(input.isDefault),
       timeoutMs: Math.min(180000, Math.max(5000, Number(input.timeoutMs) || 60000)),
       maxTokens: Math.min(32768, Math.max(256, Number(input.maxTokens) || 4096)),
@@ -81,6 +138,7 @@ function createProviderService({ app, ipcMain, safeStorage }) {
   }
 
   function requestUrl(provider) {
+    if (provider.protocol === 'custom-rest') return provider.baseUrl;
     if (provider.protocol === 'gemini') return `${provider.baseUrl.replace(/\/$/, '')}/${encodeURIComponent(provider.model)}:generateContent`;
     if (provider.protocol === 'anthropic') return `${provider.baseUrl.replace(/\/$/, '').replace(/\/messages$/, '')}/messages`;
     const base = provider.baseUrl.replace(/\/$/, '');
@@ -120,6 +178,14 @@ function createProviderService({ app, ipcMain, safeStorage }) {
       headers['anthropic-version'] = '2023-06-01';
       const system = messages.find((message) => message.role === 'system')?.content;
       body = { model: provider.model, max_tokens: options.maxTokens ?? provider.maxTokens, temperature: options.temperature ?? provider.temperature, system, messages: messages.filter((message) => message.role !== 'system').map((message) => ({ ...message, content: multimodalParts(message.content, 'anthropic') })) };
+    } else if (provider.protocol === 'custom-rest') {
+      if (apiKey) headers[provider.apiKeyHeader || 'Authorization'] = [provider.apiKeyPrefix, apiKey].filter(Boolean).join(' ');
+      const system = messages.find((message) => message.role === 'system')?.content;
+      const lastUserMessage = [...messages].reverse().find((message) => message.role === 'user')?.content;
+      body = resolveTemplate(provider.customRequestTemplate || defaultRestTemplate, {
+        model: provider.model, maxTokens: options.maxTokens ?? provider.maxTokens,
+        temperature: options.temperature ?? provider.temperature, messages, system, lastUserMessage,
+      });
     } else {
       if (apiKey) headers.authorization = `Bearer ${apiKey}`;
       body = { model: provider.model, max_tokens: options.maxTokens ?? provider.maxTokens, temperature: options.temperature ?? provider.temperature, messages };
@@ -134,13 +200,16 @@ function createProviderService({ app, ipcMain, safeStorage }) {
         const detail = data?.error?.message || data?.message || `HTTP ${response.status}`;
         throw new Error(sanitizeProviderError(detail, provider, apiKey));
       }
-      const output = provider.protocol === 'gemini'
+      const output = provider.protocol === 'custom-rest'
+        ? readMappedValue(data, provider.customResponseMapping?.textPath || defaultRestMapping.textPath)
+        : provider.protocol === 'gemini'
         ? data?.candidates?.[0]?.content?.parts?.map((part) => part.text || '').join('')
         : provider.protocol === 'anthropic'
           ? data?.content?.filter((part) => part.type === 'text').map((part) => part.text).join('')
           : data?.choices?.[0]?.message?.content;
       if (typeof output !== 'string' || !output.trim()) throw new Error('استجاب المزود دون نص قابل للاستخدام.');
-      const tokenUsage = Number(data?.usage?.total_tokens || ((data?.usage?.input_tokens || 0) + (data?.usage?.output_tokens || 0)) || data?.usageMetadata?.totalTokenCount || 0);
+      const mappedUsage = provider.protocol === 'custom-rest' ? readMappedValue(data, provider.customResponseMapping?.tokenUsagePath || defaultRestMapping.tokenUsagePath) : undefined;
+      const tokenUsage = Number(mappedUsage || data?.usage?.total_tokens || ((data?.usage?.input_tokens || 0) + (data?.usage?.output_tokens || 0)) || data?.usageMetadata?.totalTokenCount || 0);
       return { text: output, responseMs: Date.now() - started, tokenUsage };
     } finally {
       clearTimeout(timer);
@@ -177,8 +246,9 @@ function createProviderService({ app, ipcMain, safeStorage }) {
       const old = providers.find((provider) => provider.id === metadata.id);
       const apiKey = String(input.apiKey || '').trim();
       const customHeaders = String(input.customHeaders || '').trim() ? parseCustomHeaders(String(input.customHeaders).trim()) : old?.customHeaders || {};
+      const rest = metadata.protocol === 'custom-rest' ? parseRestConfig(input, old) : {};
       if (metadata.isDefault) providers.forEach((provider) => { provider.isDefault = false; });
-      const next = { ...old, ...metadata, customHeaders, encryptedApiKey: apiKey ? safeStorage.encryptString(apiKey).toString('base64') : old?.encryptedApiKey };
+      const next = { ...old, ...metadata, ...rest, customHeaders, encryptedApiKey: apiKey ? safeStorage.encryptString(apiKey).toString('base64') : old?.encryptedApiKey };
       const saved = old ? providers.map((provider) => provider.id === old.id ? next : provider) : [next, ...providers];
       await writeStore(saved);
       return { ok: true, provider: publicProvider(next) };
@@ -194,6 +264,7 @@ function createProviderService({ app, ipcMain, safeStorage }) {
     try {
       const provider = (await readStore()).find((item) => item.id === String(id) && item.enabled);
       if (!provider) throw new Error('المزود غير موجود أو متوقف.');
+      if (provider.protocol === 'custom-rest') throw new Error('هذا المزود يستخدم نقطة REST مخصصة؛ أدخل معرّف النموذج يدوياً لأن نقطة جلب النماذج تختلف حسب الخدمة.');
       const apiKey = provider.encryptedApiKey ? safeStorage.decryptString(Buffer.from(provider.encryptedApiKey, 'base64')) : '';
       const url = provider.protocol === 'gemini'
         ? provider.baseUrl.replace(/\/$/, '')
@@ -294,3 +365,4 @@ function createProviderService({ app, ipcMain, safeStorage }) {
 }
 
 module.exports = { createProviderService };
+
