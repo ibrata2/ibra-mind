@@ -43,19 +43,46 @@ grant select, insert, update, delete on public.ibra_projects to authenticated;
 grant select, insert on public.ibra_project_versions to authenticated;
 grant usage, select on sequence public.ibra_project_versions_id_seq to authenticated;
 
-create or replace function public.save_ibra_project(
+drop function if exists public.save_ibra_project(text, text, text, jsonb);
+drop function if exists public.save_ibra_project(text, text, text, jsonb, timestamptz);
+
+create function public.save_ibra_project(
   p_project_id text,
   p_title text,
   p_kind text,
-  p_content jsonb
+  p_content jsonb,
+  p_expected_updated_at timestamptz default null
 ) returns void
 language plpgsql
 security invoker
 set search_path = ''
 as $$
+declare
+  v_updated_at timestamptz;
+  v_exists boolean;
 begin
   if auth.uid() is null then
     raise exception 'Authentication is required.' using errcode = '42501';
+  end if;
+
+  perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended(auth.uid()::text || ':' || p_project_id, 0));
+
+  select updated_at into v_updated_at
+  from public.ibra_projects
+  where owner_id = auth.uid() and id = p_project_id
+  for update;
+  v_exists := found;
+
+  if (v_exists and (p_expected_updated_at is null or v_updated_at is distinct from p_expected_updated_at))
+    or (not v_exists and p_expected_updated_at is not null) then
+    raise exception 'IBRA_SYNC_CONFLICT: the cloud project changed after it was read.' using errcode = '40001';
+  end if;
+
+  if v_exists then
+    insert into public.ibra_project_versions (owner_id, project_id, title, kind, content)
+    select owner_id, id, title, kind, content
+    from public.ibra_projects
+    where owner_id = auth.uid() and id = p_project_id;
   end if;
 
   insert into public.ibra_projects (owner_id, id, title, kind, content, updated_at)
@@ -71,5 +98,6 @@ begin
 end;
 $$;
 
-revoke all on function public.save_ibra_project(text, text, text, jsonb) from public;
-grant execute on function public.save_ibra_project(text, text, text, jsonb) to authenticated;
+revoke all on function public.save_ibra_project(text, text, text, jsonb, timestamptz) from public;
+grant execute on function public.save_ibra_project(text, text, text, jsonb, timestamptz) to authenticated;
+
