@@ -2,9 +2,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 import {
   addEdge, Background, Controls, MiniMap, ReactFlow, useEdgesState, useNodesState,
-  type Connection, type Edge, type Node, type NodeProps, type ReactFlowInstance,
+  MarkerType, type Connection, type Edge, type Node, type NodeProps, type ReactFlowInstance,
 } from '@xyflow/react';
-import { AlertCircle, ArrowRight, CircleHelp, Copy, Download, Expand, FileText, FileUp, FileDown, FileImage, Home, LayoutGrid, ListTree, Plus, Printer, Redo2, Save, Scissors, Shrink, Sparkles, LoaderCircle, Trash2, Undo2, X } from 'lucide-react';
+import { AlertCircle, ArrowRight, ChevronLeft, ChevronRight, CircleHelp, Copy, Download, Expand, FileText, FileUp, FileDown, FileImage, Home, LayoutGrid, ListTree, Plus, Printer, Redo2, Save, Scissors, Search, Shrink, Sparkles, LoaderCircle, Trash2, Undo2, X } from 'lucide-react';
 import { touchProject } from '../projects/projectStore';
 import { loadDocument, saveDocument } from '../storage/documentStore';
 import { mapFromJson } from '../ai/AIGenerator';
@@ -133,6 +133,9 @@ export default function MindMapEditor({ projectId, title, onHome }: { projectId:
   const [nodes, setNodes, onNodesChange] = useNodesState<MindNodeType>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
+  const [nodeSearch, setNodeSearch] = useState('');
+  const [searchIndex, setSearchIndex] = useState(-1);
   const [savedAt, setSavedAt] = useState('');
   const [clipboardReady, setClipboardReady] = useState(false);
   const [outlineMode, setOutlineMode] = useState(false);
@@ -173,6 +176,47 @@ export default function MindMapEditor({ projectId, title, onHome }: { projectId:
   }, [checkpoint, setNodes]);
   const withCallbacks = useCallback((items: MindNodeType[]) => items.map((node) => ({ ...node, data: { ...node.data, onLabelChange: updateLabel, onMetaChange: updateMeta, onLabelCommit: () => checkpoint(nodesRef.current, edgesRef.current) } })), [updateLabel, updateMeta, checkpoint]);
   const nodeTypes = useMemo(() => ({ mind: TopicNode }), []);
+  const searchMatches = useMemo(() => {
+    const query = nodeSearch.trim().toLocaleLowerCase();
+    return query ? nodes.filter((node) => node.data.label.toLocaleLowerCase().includes(query)) : [];
+  }, [nodeSearch, nodes]);
+
+  const searchNode = useCallback((direction: -1 | 1) => {
+    if (!searchMatches.length) {
+      if (nodeSearch.trim()) setNotice('ما لكيت عقدة تطابق البحث.');
+      return;
+    }
+    const nextIndex = (searchIndex + direction + searchMatches.length) % searchMatches.length;
+    const target = searchMatches[nextIndex];
+    setSearchIndex(nextIndex);
+    setSelectedId(target.id);
+    setSelectedEdgeId(null);
+
+    const pathIds = new Set([target.id]);
+    let currentId = target.id;
+    while (true) {
+      const parentId = edges.find((edge) => edge.target === currentId)?.source;
+      if (!parentId || pathIds.has(parentId)) break;
+      pathIds.add(parentId);
+      currentId = parentId;
+    }
+    const nextNodes = nodes.map((node) => pathIds.has(node.id) && node.hidden ? { ...node, hidden: false } : node);
+    const nextEdges = edges.map((edge) => pathIds.has(edge.target) && pathIds.has(edge.source) && edge.hidden ? { ...edge, hidden: false } : edge);
+    if (nextNodes.some((node, index) => node !== nodes[index]) || nextEdges.some((edge, index) => edge !== edges[index])) {
+      checkpoint(nextNodes, nextEdges);
+      setNodes(withCallbacks(nextNodes));
+      setEdges(nextEdges);
+    }
+
+    if (outlineMode) {
+      requestAnimationFrame(() => {
+        const row = Array.from(document.querySelectorAll<HTMLElement>('[data-outline-node]')).find((element) => element.dataset.outlineNode === target.id);
+        row?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      });
+    } else {
+      void flowInstance.current?.fitView({ nodes: [{ id: target.id }], duration: 450, padding: 0.55 });
+    }
+  }, [searchMatches, searchIndex, nodeSearch, edges, nodes, outlineMode, checkpoint, setNodes, setEdges, withCallbacks]);
 
   useEffect(() => {
     let active = true;
@@ -451,6 +495,18 @@ export default function MindMapEditor({ projectId, title, onHome }: { projectId:
     setNodes(nextNodes);
   }, [selectedId, nodes, edges, withCallbacks, checkpoint, setNodes]);
 
+  const updateSelectedEdge = useCallback((patch: Partial<Edge>) => {
+    if (!selectedEdgeId) return;
+    const nextEdges = edges.map((edge) => edge.id === selectedEdgeId ? { ...edge, ...patch } : edge);
+    checkpoint(nodes, nextEdges); setEdges(nextEdges);
+  }, [selectedEdgeId, nodes, edges, checkpoint, setEdges]);
+
+  const removeSelectedEdge = useCallback(() => {
+    if (!selectedEdgeId) return;
+    const nextEdges = edges.filter((edge) => edge.id !== selectedEdgeId);
+    checkpoint(nodes, nextEdges); setEdges(nextEdges); setSelectedEdgeId(null);
+  }, [selectedEdgeId, nodes, edges, checkpoint, setEdges]);
+
   const toggleBranch = useCallback((expand: boolean) => {
     if (!selectedId) return;
     const descendants = new Set<string>();
@@ -585,7 +641,7 @@ export default function MindMapEditor({ projectId, title, onHome }: { projectId:
     const node = nodes.find((item) => item.id === id);
     if (!node || path.has(id)) return null;
     const nextPath = new Set(path).add(id);
-    return <li key={id} style={{ '--outline-depth': depth } as CSSProperties}>
+    return <li key={id} data-outline-node={id} style={{ '--outline-depth': depth } as CSSProperties}>
       <div className={`outline-row ${selectedId === id ? 'selected' : ''}`}>
         <button aria-label={`اختيار ${node.data.label}`} onClick={() => setSelectedId(id)} className="outline-select">{node.data.label}</button>
         <button aria-label="إضافة فرع تابع" onClick={() => addTopic('child', id)}><Plus size={14}/></button>
@@ -605,7 +661,7 @@ export default function MindMapEditor({ projectId, title, onHome }: { projectId:
   }, [setNodes, setEdges, withCallbacks]);
 
   const connect = useCallback((connection: Connection) => {
-    const nextEdges = addEdge({ ...connection, type: 'smoothstep' }, edges);
+    const nextEdges = addEdge({ ...connection, type: 'smoothstep', style: { stroke: '#8a7be0', strokeWidth: 2 }, markerEnd: { type: MarkerType.ArrowClosed, color: '#8a7be0' } }, edges);
     checkpoint(nodes, nextEdges);
     setEdges(nextEdges);
   }, [nodes, edges, checkpoint, setEdges]);
@@ -638,10 +694,11 @@ export default function MindMapEditor({ projectId, title, onHome }: { projectId:
 
   return <main className="editor-shell" ref={flowRef}>
     <header className="editor-topbar"><button className="editor-brand" onClick={onHome}><span className="brand-mark"><ArrowRight size={18}/></span><span>IBRA <b>MIND</b></span></button><div className="editor-title"><small>خريطتي الذهنية</small><b>{title}</b></div><div className="editor-save"><Save size={15}/>{savedAt ? `حُفظ تلقائياً · ${savedAt}` : 'حفظ تلقائي مفعّل'}</div><button className="editor-button subtle" onClick={exportMap}><Download size={15}/> تصدير JSON</button><button className="editor-button subtle" onClick={onHome}><Home size={15}/> الرئيسية</button></header>
+    <div className="node-search-toolbar" role="search" aria-label="البحث داخل الخريطة"><label><Search size={15}/><input aria-label="ابحث في عناوين العقد" value={nodeSearch} onChange={(event)=>{setNodeSearch(event.target.value);setSearchIndex(-1)}} onKeyDown={(event)=>{if(event.key==='Enter'){event.preventDefault();searchNode(event.shiftKey?-1:1)}}} placeholder="ابحث داخل العقد..."/></label><span className="node-search-count" aria-live="polite">{searchMatches.length ? `${searchIndex >= 0 ? searchIndex + 1 : '—'} / ${searchMatches.length}` : nodeSearch.trim() ? 'لا توجد نتائج' : 'بحث في الخريطة'}</span><button className="editor-icon-button" aria-label="النتيجة السابقة" title="النتيجة السابقة" disabled={!searchMatches.length} onClick={()=>searchNode(-1)}><ChevronRight size={16}/></button><button className="editor-icon-button" aria-label="النتيجة التالية" title="النتيجة التالية" disabled={!searchMatches.length} onClick={()=>searchNode(1)}><ChevronLeft size={16}/></button></div>
     <div className="editor-toolbar"><button className="editor-button primary" onClick={() => addTopic('child')}><Plus size={16}/> فرع تابع <kbd>Tab</kbd></button><button className="editor-button" onClick={() => addTopic('sibling')} disabled={!selectedId || selectedId === 'root'}><Plus size={15}/> فرع بجانبه</button><button className="editor-button" onClick={duplicateSelected} disabled={!selectedId || selectedId === 'root'}><Copy size={14}/> تكرار</button><button className="editor-button" onClick={() => { copySelected(); removeSelected(); }} disabled={!selectedId || selectedId === 'root'}><Scissors size={14}/> قص</button><button className="editor-button" onClick={pasteBranch} disabled={!clipboardReady}><Copy size={14}/> لصق</button><button className="editor-button" onClick={() => removeSelected()} disabled={!selectedId || selectedId === 'root'}><Trash2 size={15}/> حذف</button><span className="toolbar-divider"/><button className="editor-icon-button" aria-label="تراجع" onClick={() => restoreHistory(-1)}><Undo2 size={17}/></button><button className="editor-icon-button" aria-label="إعادة" onClick={() => restoreHistory(1)}><Redo2 size={17}/></button><button className="editor-button" onClick={autoLayout}><LayoutGrid size={14}/> توزيع تلقائي</button><button className="editor-button" onClick={()=>setOutlineMode(!outlineMode)}>{outlineMode?<LayoutGrid size={14}/>:<ListTree size={14}/>} {outlineMode?'عرض الخريطة':'عرض القائمة'}</button><button className="editor-button" onClick={exportMarkdown}><FileText size={14}/> Markdown</button><button className="editor-button" onClick={()=>importInputRef.current?.click()}><FileUp size={14}/> استيراد JSON</button><input ref={importInputRef} hidden type="file" accept="application/json,.json" aria-label="ملف خريطة JSON" onChange={(event)=>{importMap(event.target.files?.[0]);event.currentTarget.value=''}}/><button className="editor-button" onClick={()=>window.print()}><Printer size={14}/> طباعة</button><span className="editor-help"><CircleHelp size={15}/> حدّد عقدة ثم اختر الإجراء. اسحب العقد لترتيبها.</span></div>
     {!outlineMode && <div className="editor-toolbar export-toolbar" aria-label="تصدير الخريطة"><span>تصدير كامل الخريطة:</span><button className="editor-button" title="تصدير PNG عالي الدقة" onClick={()=>void exportVisual('png')}><FileImage size={14}/> PNG</button><button className="editor-button" title="تصدير SVG" onClick={()=>void exportVisual('svg')}><FileImage size={14}/> SVG</button><button className="editor-button" title="تصدير PDF متعدد الصفحات" onClick={()=>void exportVisual('pdf')}><FileDown size={14}/> PDF</button><span className="export-selected-label">العقدة المحددة وفروعها:</span><span className="export-selected-label">العقدة وحدها:</span><button className="editor-button" disabled={!selectedId} title="تصدير العقدة PNG" onClick={()=>void exportVisual("png",true,true)}><FileImage size={14}/> PNG</button><button className="editor-button" disabled={!selectedId} title="تصدير العقدة SVG" onClick={()=>void exportVisual("svg",true,true)}><FileImage size={14}/> SVG</button><button className="editor-button" disabled={!selectedId} title="تصدير العقدة PDF" onClick={()=>void exportVisual("pdf",true,true)}><FileDown size={14}/> PDF</button><button className="editor-button" disabled={!selectedId} title="تصدير التحديد PNG" onClick={()=>void exportVisual('png',true)}><FileImage size={14}/> PNG</button><button className="editor-button" disabled={!selectedId} title="تصدير التحديد SVG" onClick={()=>void exportVisual('svg',true)}><FileImage size={14}/> SVG</button><button className="editor-button" disabled={!selectedId} title="تصدير التحديد PDF" onClick={()=>void exportVisual('pdf',true)}><FileDown size={14}/> PDF</button></div>}
     {selectedId && <div className="editor-toolbar node-style-toolbar" aria-label="تنسيق العقدة المحددة"><span>تنسيق العقدة</span><select aria-label="شكل العقدة" value={nodes.find((node)=>node.id===selectedId)?.data.kind||'branch'} onChange={(event)=>setSelectedStyle({kind:event.target.value as MindKind})}><option value="branch">متفرعة</option><option value="rectangle">مستطيل</option><option value="circle">دائرية</option><option value="diamond">معيّن</option><option value="sticky">ملاحظة</option><option value="task">مهمة</option></select><select aria-label="لون العقدة" value={nodes.find((node)=>node.id===selectedId)?.data.color||'violet'} onChange={(event)=>setSelectedStyle({color:event.target.value as MindColor})}><option value="violet">بنفسجي</option><option value="blue">أزرق</option><option value="mint">أخضر</option><option value="amber">ذهبي</option></select><button className="editor-button" onClick={()=>{setAssistantError('');setAssistantResult('');setAssistantOpen(true)}} disabled={aiBusy}><Sparkles size={14}/> مساعد الذكاء</button><button className="editor-button" onClick={()=>void expandWithAi()} disabled={aiBusy}>{aiBusy?<LoaderCircle size={14} className="spin"/>:<Sparkles size={14}/>} توسيع بالذكاء</button><button className="editor-button" onClick={()=>toggleBranch(false)}><Shrink size={14}/> طي الفروع</button><button className="editor-button" onClick={()=>toggleBranch(true)}><Expand size={14}/> توسيع الفروع</button></div>}
-    {outlineMode ? <section className="outline-canvas" aria-label="مخطط الخريطة الهيكلي"><ul>{(nodes.find((node)=>node.id==='root')??nodes[0])&&renderOutline((nodes.find((node)=>node.id==='root')??nodes[0]).id,0,new Set())}</ul></section> : <section className="canvas-wrap" aria-label="لوحة الخريطة الذهنية"><ReactFlow nodes={nodes} edges={edges} nodeTypes={nodeTypes} onInit={(instance)=>{flowInstance.current=instance}} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} onConnect={connect} onNodeClick={(_, node) => setSelectedId(node.id)} onPaneClick={() => setSelectedId(null)} onNodeDragStop={() => checkpoint(nodesRef.current, edgesRef.current)} fitView fitViewOptions={{ padding: 0.3 }} minZoom={0.2} maxZoom={2.2} proOptions={{ hideAttribution: true }}><Background color="#dbe0ec" gap={24} size={1}/><Controls position="bottom-left"/><MiniMap position="bottom-right" zoomable pannable nodeColor="#8d79ee"/></ReactFlow></section>}
+    {selectedEdgeId && edges.find((edge)=>edge.id===selectedEdgeId) && (()=>{const edge=edges.find((item)=>item.id===selectedEdgeId)!;const color=String(edge.style?.stroke||'#8a7be0');const marker=edge.markerEnd&&typeof edge.markerEnd==='object'?edge.markerEnd.type:'none';return <div className="editor-toolbar node-style-toolbar edge-style-toolbar" aria-label="تنسيق الاتصال المحدد"><b>تنسيق الاتصال</b><select aria-label="نوع الخط" value={edge.type||'default'} onChange={(event)=>updateSelectedEdge({type:event.target.value})}><option value="default">منحني</option><option value="smoothstep">ناعم متدرج</option><option value="step">زاوية قائمة</option><option value="straight">مستقيم</option></select><label>اللون<input aria-label="لون الاتصال" type="color" value={color} onChange={(event)=>updateSelectedEdge({style:{...edge.style,stroke:event.target.value},markerEnd:marker==='none'?undefined:{type:marker as MarkerType,color:event.target.value}})}/></label><label>السمك<input aria-label="سمك الاتصال" type="range" min="1" max="6" step="0.5" value={Number(edge.style?.strokeWidth||2)} onChange={(event)=>updateSelectedEdge({style:{...edge.style,strokeWidth:Number(event.target.value)}})}/></label><label>السهم<select aria-label="نوع رأس السهم" value={marker} onChange={(event)=>updateSelectedEdge({markerEnd:event.target.value==='none'?undefined:{type:event.target.value as MarkerType,color}})}><option value="none">بلا سهم</option><option value="arrow">سهم</option><option value="arrowclosed">سهم ممتلئ</option></select></label><label>التسمية<input aria-label="تسمية الاتصال" value={String(edge.label||'')} maxLength={80} onChange={(event)=>updateSelectedEdge({label:event.target.value})} placeholder="تسمية اختيارية"/></label><label><input type="checkbox" checked={Boolean(edge.style?.strokeDasharray)} onChange={(event)=>updateSelectedEdge({style:{...edge.style,strokeDasharray:event.target.checked?'6 4':undefined}})}/> متقطع</label><button className="editor-button" onClick={removeSelectedEdge}><Trash2 size={14}/> حذف الاتصال</button></div>})()}    {outlineMode ? <section className="outline-canvas" aria-label="مخطط الخريطة الهيكلي"><ul>{(nodes.find((node)=>node.id==='root')??nodes[0])&&renderOutline((nodes.find((node)=>node.id==='root')??nodes[0]).id,0,new Set())}</ul></section> : <section className="canvas-wrap" aria-label="لوحة الخريطة الذهنية"><ReactFlow nodes={nodes} edges={edges} nodeTypes={nodeTypes} onInit={(instance)=>{flowInstance.current=instance}} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} onConnect={connect} onNodeClick={(_, node) => {setSelectedId(node.id);setSelectedEdgeId(null)}} onEdgeClick={(_, edge) => {setSelectedId(null);setSelectedEdgeId(edge.id)}} onPaneClick={() => {setSelectedId(null);setSelectedEdgeId(null)}} onNodeDragStop={() => checkpoint(nodesRef.current, edgesRef.current)} fitView fitViewOptions={{ padding: 0.3 }} minZoom={0.2} maxZoom={2.2} proOptions={{ hideAttribution: true }}><Background color="#dbe0ec" gap={24} size={1}/><Controls position="bottom-left"/><MiniMap position="bottom-right" zoomable pannable nodeColor="#8d79ee"/></ReactFlow></section>}
     <footer className="editor-footer"><span>{nodes.length} عقدة · {edges.length} اتصال</span><span>Tab فرع تابع · Ctrl+D تكرار · Ctrl+C / X / V نسخ · Delete حذف · Ctrl+Z تراجع</span></footer>
     {notice&&<div className="toast" role="status">{notice}<button onClick={()=>setNotice('')}>حسناً</button></div>}
     {assistantOpen&&<div className="dialog-backdrop ai-backdrop" onMouseDown={(event)=>{if(event.target===event.currentTarget&&!aiBusy)setAssistantOpen(false)}}><section className="dialog-card ai-dialog" role="dialog" aria-modal="true" aria-labelledby="node-ai-title"><button className="dialog-close" aria-label="إغلاق" disabled={aiBusy} onClick={()=>setAssistantOpen(false)}><X size={18}/></button><div className="dialog-symbol ai-symbol"><Sparkles size={22}/></div><h2 id="node-ai-title">مساعد العقدة المحددة</h2><p>يُرسل نص العقدة وفروعها إلى المزود المحدد لمسار المهمة. عاين النتيجة واختر كيف تضيفها للخريطة.</p><label className="ai-provider-label">الإجراء<select value={assistantAction} disabled={aiBusy} onChange={(event)=>{setAssistantAction(event.target.value as NodeAiAction);setAssistantResult('');setAssistantError('')}}><option value="summarize">تلخيص الفرع</option><option value="rewrite">إعادة صياغة العنوان</option><option value="translate">ترجمة الفرع</option><option value="explain">شرح مبسّط</option><option value="brainstorm">اقتراح أفكار فرعية</option><option value="questions">توليد أسئلة دراسة</option></select></label>{assistantAction==='translate'&&<label className="ai-provider-label">لغة الترجمة<input value={assistantLanguage} maxLength={50} onChange={(event)=>setAssistantLanguage(event.target.value)} placeholder="مثال: العربية أو English"/></label>}<div className="document-preview"><b>العقدة: {nodes.find((node)=>node.id===selectedId)?.data.label}</b></div><div className="dialog-actions"><button className="editor-button primary" onClick={()=>void runNodeAssistant()} disabled={aiBusy}>{aiBusy?<LoaderCircle size={15} className="spin"/>:<Sparkles size={15}/>} {aiBusy?'جارٍ العمل':'إنشاء نتيجة'}</button></div>{assistantError&&<div className="provider-error" role="alert"><AlertCircle size={16}/>{assistantError}</div>}{assistantResult&&<><label className="ai-topic-label">معاينة النتيجة<textarea dir="auto" rows={7} maxLength={4000} value={assistantResult} onChange={(event)=>setAssistantResult(event.target.value)}/></label><div className="dialog-actions"><button className="editor-button" onClick={()=>void (navigator.clipboard?.writeText(assistantResult)??Promise.reject()).then(()=>setAssistantError('نُسخت النتيجة إلى الحافظة.')).catch(()=>setAssistantError('تعذر النسخ؛ حدد النص وانسخه يدوياً.'))}><Copy size={14}/> نسخ</button><button className="editor-button" onClick={()=>applyAssistantResult('replace')}>استبدال عنوان العقدة</button><button className="editor-button primary" onClick={()=>applyAssistantResult('children')}>إضافة كفروع</button></div></>}</section></div>}
