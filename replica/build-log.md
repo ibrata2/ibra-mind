@@ -41,4 +41,5 @@
 Remaining product work includes manual multi-batch OCR fixture verification, automatic YouTube transcript retrieval where supported through authorized official access, cloud background sync and conflict resolution, sharing/live collaboration, and broader edge formatting. OAuth setup and profile controls are implemented, but need live verification in the owner's Supabase/Google project. Cloud account, policy, and restore flows also need testing in a user-owned Supabase project. A clean Windows 10/11 install, microphone permission, and URI callback remain to be verified. Do not describe these as complete before the flows are verified.
 
 - The editor's AI expansion action requests a schema-checked submap from the configured expansion provider, appends it to the selected node, and records it in undo history.
+- Added AI flowchart generation with task-specific provider routing, strict node/edge validation, and non-destructive insertion into the existing canvas.
 
