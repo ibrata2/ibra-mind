@@ -51,10 +51,10 @@ function createWindow() {
   mainWindow.webContents.once('did-finish-load', () => {
     deliverAuthUrl();
     if (process.env.IBRA_MIND_SMOKE !== '1') return;
-    void mainWindow.webContents.executeJavaScript('new Promise(resolve=>{const started=Date.now();const check=()=>{const root=document.getElementById("root");if(root&&root.children.length&&root.innerText.includes("IBRA MIND"))return resolve(true);if(Date.now()-started>=30000)return resolve(false);setTimeout(check,100);};check();})')
-      .then((loaded) => {
-        process.stdout.write(loaded ? 'IBRA_MIND_RENDERER_OK\n' : 'IBRA_MIND_RENDERER_EMPTY\n');
-        if (!loaded) process.exitCode = 1;
+    void mainWindow.webContents.executeJavaScript('new Promise(resolve=>{const started=Date.now();const check=()=>{const root=document.getElementById("root");if(root&&root.children.length&&root.innerText.includes("IBRA MIND"))return resolve({ready:true});if(Date.now()-started>=30000)return resolve({ready:false,url:location.href,state:document.readyState,title:document.title,body:document.body?.innerText?.slice(0,500),root:root?.outerHTML?.slice(0,1000),resources:performance.getEntriesByType("resource").map(x=>x.name).slice(-20)});setTimeout(check,100);};check();})')
+      .then((result) => {
+        process.stdout.write(result.ready ? 'IBRA_MIND_RENDERER_OK\n' : `IBRA_MIND_RENDERER_EMPTY ${JSON.stringify(result)}\n`);
+        if (!result.ready) process.exitCode = 1;
         app.quit();
       })
       .catch((error) => { process.stderr.write(`IBRA_MIND_RENDERER_ERROR ${error.message}\n`); process.exitCode = 1; app.quit(); });
