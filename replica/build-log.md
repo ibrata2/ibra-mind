@@ -32,4 +32,11 @@
 - Provider and encrypted auth-storage smoke checks passed for encrypted-key redaction, zero temperature, request/token counters, audio upload formatting and timestamp response handling, encrypted session at-rest handling, key separation, and corrupt-file recovery.
 - Browser UI inspection confirmed all template categories render and the audio/document/image tools open their dialogs.
 - Desktop main/preload/auth-storage/provider scripts pass node --check.
-- Desktop smoke check runs on
+- Desktop smoke check runs only on the Windows GitHub runner after packaging and validates a non-empty rendered dashboard before the installer artifact is uploaded.
+- Previous browser walkthrough confirmed dashboard navigation, mind map branch operations and outline mode, flowchart creation, whiteboard objects, settings/about, and AI provider availability messaging. Individual-node export now has PNG, SVG, and PDF actions; the production build and provider smoke check pass.
+- Local source is versioned 0.4.0. GitHub Actions built the Windows x64 installer successfully on 2026-10-31 and saved a 30-day review artifact; the workflow intentionally skipped creating a public release. Local Electron installation cannot be validated in this restricted Windows environment.
+
+## Still required for the stated full product
+
+Remaining product work includes OCR for image-only PDF files beyond the current 10-page batch, automatic YouTube transcript retrieval where supported through authorized official access, cloud background sync and conflict resolution, sharing/live collaboration, broader edge formatting, and full Windows runtime verification. OAuth setup and profile controls are implemented, but need live verification in the owner's Supabase/Google project. Cloud account, policy, and restore flows also need testing in a user-owned Supabase project. Do not describe these as complete before the flows are verified.
+
