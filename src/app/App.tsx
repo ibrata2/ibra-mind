@@ -3,7 +3,7 @@ import { LayoutDashboard, Network, PanelsTopLeft, Sparkles, Clock3, Star, Settin
 import ProviderManager from '../features/ai/ProviderManager';
 import type { GeneratedMap } from '../features/ai/AIGenerator';
 import { createProject, deleteProject, documentKey, listProjects, updateProject, type ProjectRecord } from '../features/projects/projectStore';
-import { peekDocument, saveDocument } from '../features/storage/documentStore';
+import { loadDocument, peekDocument, saveDocument } from '../features/storage/documentStore';
 
 const MindMapEditor = lazy(() => import('../features/mindmap/MindMapEditor'));
 const FlowchartEditor = lazy(() => import('../features/flowchart/FlowchartEditor'));
@@ -33,12 +33,14 @@ function previewLabels(project: ProjectRecord) {
     return { root: '', first: '', second: '' };
   }
 }
+type ContentSearchMatch = { project: ProjectRecord; nodeId: string; nodeLabel: string; snippet: string };
 export default function App() {
   const [tab, setTab] = useState('all');
   const [notice, setNotice] = useState('');
   const [projects, setProjects] = useState<ProjectRecord[]>(() => listProjects());
   const [activeProject, setActiveProject] = useState<ProjectRecord | null>(null);
   const [search, setSearch] = useState('');
+  const [contentMatches, setContentMatches] = useState<ContentSearchMatch[]>([]);
   const [view, setView] = useState<'grid' | 'list'>('grid');
   const [createOpen, setCreateOpen] = useState(false);
   const [newTitle, setNewTitle] = useState('');
@@ -91,6 +93,28 @@ export default function App() {
     if (query) filtered = filtered.filter((project) => project.title.toLocaleLowerCase().includes(query));
     return filtered;
   }, [projects, tab, search]);
+  useEffect(() => {
+    let alive = true;
+    const query = search.trim().toLocaleLowerCase();
+    if (query.length < 2) { setContentMatches([]); return () => { alive = false; }; }
+    const timer = window.setTimeout(() => {
+      void Promise.all(projects.map(async (project): Promise<ContentSearchMatch[]> => {
+        try {
+          const raw = await loadDocument(project.id);
+          if (!raw) return [];
+          const document = JSON.parse(raw) as { nodes?: { id?: string; data?: { label?: string; text?: string; notes?: string } }[] };
+          return (document.nodes ?? []).flatMap((node) => {
+            const label = node.data?.label ?? node.data?.text ?? '';
+            const notes = node.data?.notes ?? '';
+            const content = `${label}\n${notes}`;
+            const index = content.toLocaleLowerCase().indexOf(query);
+            return index < 0 ? [] : [{ project, nodeId: node.id ?? '', nodeLabel: label || 'عنصر بلا عنوان', snippet: content.slice(Math.max(0, index - 36), Math.min(content.length, index + query.length + 64)).replace(/\s+/g, ' ') }];
+          });
+        } catch { return []; }
+      })).then((groups) => { if (alive) setContentMatches(groups.flat().slice(0, 12)); });
+    }, 180);
+    return () => { alive = false; window.clearTimeout(timer); };
+  }, [projects, search]);
   const openNewMap = (title = 'خريطة ذهنية جديدة') => {
     const project = createProject(title);
     setProjects(listProjects());
@@ -148,7 +172,7 @@ export default function App() {
       <div className="sidebar-bottom"><div className="upgrade"><Sparkles size={17}/><b>مساحة الذكاء الاصطناعي</b><p>إدارة المزودين وتوليد الخرائط من إعدادات التطبيق.</p><button onClick={() => {setSettingsTab('providers');setSettingsOpen(true)}}>إعدادات المزودين <ArrowUpLeft size={14}/></button></div><button className="nav-item" onClick={() => setSettingsOpen(true)}><Settings size={17}/> الإعدادات</button><div className="profile"><div className="avatar">إ</div><div><b>إبراهيم الخزرجي</b><small>مساحة شخصية محلية</small></div><button className="profile-menu-button" aria-label="إعدادات الحساب المحلي" onClick={()=>setSettingsOpen(true)}><MoreHorizontal size={18}/></button></div></div>
     </aside>
     <section className="main-area">
-      <header className="topbar"><div className="breadcrumbs">مساحة العمل <span>/</span> <b>{tab==='shared'?'مساحة الفريق':nav.find((item)=>item.key===tab)?.label || 'الرئيسية'}</b></div><div className="top-actions"><label className="search"><Search size={16}/><input aria-label="البحث في ملفاتك" value={search} onChange={(event)=>setSearch(event.target.value)} placeholder="ابحث في ملفاتك"/><kbd><Command size={11}/> K</kbd></label><button className="icon-button" aria-label="الإعدادات" onClick={()=>setSettingsOpen(true)}><Settings size={17}/></button><div className="avatar small-avatar">إ</div></div></header>
+      <header className="topbar"><div className="breadcrumbs">مساحة العمل <span>/</span> <b>{tab==='shared'?'مساحة الفريق':nav.find((item)=>item.key===tab)?.label || 'الرئيسية'}</b></div><div className="top-actions"><div className="global-search"><label className="search"><Search size={16}/><input aria-label="البحث في ملفاتك ومحتواها" value={search} onChange={(event)=>setSearch(event.target.value)} placeholder="ابحث في ملفاتك ومحتواها"/><kbd><Command size={11}/> K</kbd></label>{search.trim().length>=2&&<div className="search-results" role="listbox" aria-label="نتائج البحث في محتوى الملفات">{contentMatches.length?contentMatches.map((match,index)=><button key={`${match.project.id}-${match.nodeId}-${index}`} role="option" aria-selected="false" onClick={()=>{setSearch('');setActiveProject(match.project)}}><b>{match.nodeLabel}</b><small>{match.project.title}</small><span>{match.snippet}</span></button>):<p>ما لقينا عبارة مطابقة داخل محتوى ملفاتك.</p>}</div>}</div><button className="icon-button" aria-label="الإعدادات" onClick={()=>setSettingsOpen(true)}><Settings size={17}/></button><div className="avatar small-avatar">إ</div></div></header>
       <div className="content"><div className="welcome"><div><div className="eyebrow"><span/> مساحة عملك جاهزة</div><h1>أهلاً بك، إبراهيم <span>✦</span></h1><p>كل فكرة عظيمة تبدأ بخطوة. ماذا ستبني اليوم؟</p></div><div className="welcome-actions"><button className="primary-button" onClick={() => setCreateOpen(true)}><Plus size={17}/> مشروع جديد</button><button className="editor-button" onClick={()=>setTemplatesOpen(true)}><BookOpen size={15}/> القوالب</button><button className="editor-button" onClick={()=>setYoutubeOpen(true)}><Youtube size={15}/> YouTube</button></div></div>
         <div className="quick-grid"><button className="quick-card purple-card" onClick={()=>openNewMap()}><div className="quick-icon"><Network size={21}/></div><div><b>خريطة ذهنية</b><small>افتح خريطة محلية قابلة للتحرير</small></div><Plus size={17} className="quick-plus"/></button><button className="quick-card blue-card" onClick={openNewFlowchart}><div className="quick-icon"><PanelsTopLeft size={21}/></div><div><b>مخطط انسيابي</b><small>أنشئ الأشكال واربط المسارات</small></div><Plus size={17} className="quick-plus"/></button><button className="quick-card mint-card" onClick={openNewWhiteboard}><div className="quick-icon"><PanelsTopLeft size={21}/></div><div><b>لوحة بيضاء</b><small>أضف نصوصاً وملاحظات وأشكالاً</small></div><Plus size={17} className="quick-plus"/></button><button className="quick-card amber-card" onClick={()=>setAiOpen(true)}><div className="quick-icon"><Sparkles size={21}/></div><div><b>توليد خريطة بالذكاء الاصطناعي</b><small>اكتب موضوعاً واحصل على خريطة قابلة للتحرير</small></div><Plus size={17} className="quick-plus"/></button><button className="quick-card blue-card" onClick={()=>setDocumentOpen(true)}><div className="quick-icon"><FileText size={21}/></div><div><b>تحليل مستند</b><small>PDF وWord وPowerPoint وExcel ونصوص</small></div><Plus size={17} className="quick-plus"/></button><button className="quick-card mint-card" onClick={()=>setImageOpen(true)}><div className="quick-icon"><Image size={21}/></div><div><b>تحليل صورة</b><small>استخرج الأفكار والنصوص بخدمة رؤية</small></div><Plus size={17} className="quick-plus"/></button><button className="quick-card amber-card" onClick={()=>setAudioOpen(true)}><div className="quick-icon"><AudioLines size={21}/></div><div><b>تحليل صوت</b><small>سجّل أو ارفع ملفاً وحوّله إلى خريطة</small></div><Plus size={17} className="quick-plus"/></button></div>
         <div className="section-heading"><div><h2>ملفاتك</h2><p>{visibleProjects.length} مساحة محفوظة على هذا الجهاز</p></div><div className="view-switch"><button aria-label="عرض شبكي" className={view==='grid'?'chosen':''} onClick={()=>setView('grid')}><Grid2X2 size={16}/></button><button aria-label="عرض قائمة" className={view==='list'?'chosen':''} onClick={()=>setView('list')}><List size={17}/></button></div></div>
