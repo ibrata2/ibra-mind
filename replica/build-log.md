@@ -26,9 +26,9 @@
 - The browser walkthrough extracted Arabic text from a local TXT sample. PDF, DOCX, XLSX, and PPTX fixtures still need manual runtime validation.
 - `npm audit --omit=dev --json` reported no production dependency vulnerabilities after replacing the vulnerable `xlsx` package with `read-excel-file`.
 - Supabase cloud settings UI was rendered in the browser; it correctly asks for the user's URL and public key. A live login, database policy, and restore test is pending a Supabase project.
-- Provider IPC smoke check passed for encrypted-key redaction, zero temperature, request/token counters, audio upload formatting and timestamp response handling.
+- Provider and encrypted auth-storage smoke checks passed for encrypted-key redaction, zero temperature, request/token counters, audio upload formatting and timestamp response handling, encrypted session at-rest handling, key separation, and corrupt-file recovery.
 - Browser UI inspection confirmed all template categories render and the audio/document/image tools open their dialogs.
-- Desktop main/preload/provider scripts passed `node --check` before the latest provider error-counter edit; recheck before publishing.
+- Desktop main/preload/auth-storage/provider scripts pass node --check.
 - Previous browser walkthrough confirmed dashboard navigation, mind map branch operations and outline mode, flowchart creation, whiteboard objects, settings/about, and AI provider availability messaging. Individual-node export now has PNG, SVG, and PDF actions; the production build and provider smoke check pass.
 - Local source is versioned 0.4.0. GitHub Actions built the Windows x64 installer successfully on 2026-10-31 and saved a 30-day review artifact; the workflow intentionally skipped creating a public release. Local Electron installation cannot be validated in this restricted Windows environment.
 

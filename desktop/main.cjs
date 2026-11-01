@@ -1,7 +1,7 @@
 const { app, BrowserWindow, Menu, ipcMain, safeStorage, session } = require('electron');
-const fs = require('node:fs');
 const path = require('node:path');
 const { createProviderService } = require('./provider-service.cjs');
+const { createEncryptedAuthStorage } = require('./auth-storage.cjs');
 const AUTH_PROTOCOL = 'ibramind';
 const hasSingleInstance = app.requestSingleInstanceLock();
 if (!hasSingleInstance) app.quit();
@@ -92,41 +92,18 @@ if (hasSingleInstance) app.whenReady().then(() => {
     return { ok: true };
   });
   const authStorageFile = () => path.join(app.getPath('userData'), 'auth-session.enc');
-  const isSupabaseAuthKey = (key) => typeof key === 'string' && /^sb-[a-z0-9-]+-auth-token$/.test(key);
+  const authStorage = createEncryptedAuthStorage({ safeStorage, filePath: authStorageFile });
   ipcMain.handle('auth:storage:get', (event, key) => {
     if (!isAppOrigin(event.sender.getURL())) return null;
-    if (!isSupabaseAuthKey(key)) throw new Error('مفتاح جلسة الحساب غير صالح.');
-    const file = authStorageFile();
-    if (!fs.existsSync(file)) return null;
-    if (!safeStorage.isEncryptionAvailable()) throw new Error('تخزين جلسة الحساب المشفر غير متاح على هذا الجهاز.');
-    try {
-      const stored = JSON.parse(safeStorage.decryptString(Buffer.from(fs.readFileSync(file, 'utf8'), 'base64')));
-      return stored?.key === key && typeof stored.value === 'string' ? stored.value : null;
-    } catch {
-      fs.unlinkSync(file);
-      return null;
-    }
+    return authStorage.get(key);
   });
   ipcMain.handle('auth:storage:set', (event, key, value) => {
     if (!isAppOrigin(event.sender.getURL())) throw new Error('مصدر التطبيق غير صالح.');
-    if (!isSupabaseAuthKey(key) || typeof value !== 'string' || value.length > 128_000) throw new Error('بيانات جلسة الحساب غير صالحة.');
-    if (!safeStorage.isEncryptionAvailable()) throw new Error('تخزين جلسة الحساب المشفر غير متاح على هذا الجهاز.');
-    const encrypted = safeStorage.encryptString(JSON.stringify({ key, value }));
-    fs.writeFileSync(authStorageFile(), encrypted.toString('base64'), { encoding: 'utf8', mode: 0o600 });
+    authStorage.set(key, value);
   });
   ipcMain.handle('auth:storage:remove', (event, key) => {
     if (!isAppOrigin(event.sender.getURL())) throw new Error('مصدر التطبيق غير صالح.');
-    if (!isSupabaseAuthKey(key)) throw new Error('مفتاح جلسة الحساب غير صالح.');
-    const file = authStorageFile();
-    if (fs.existsSync(file)) {
-      if (!safeStorage.isEncryptionAvailable()) throw new Error('تعذر التحقق من تخزين الجلسة المشفر.');
-      try {
-        const stored = JSON.parse(safeStorage.decryptString(Buffer.from(fs.readFileSync(file, 'utf8'), 'base64')));
-        if (stored?.key === key) fs.unlinkSync(file);
-      } catch {
-        fs.unlinkSync(file);
-      }
-    }
+    authStorage.remove(key);
   });
   createProviderService({ app, ipcMain, safeStorage });
   createWindow();

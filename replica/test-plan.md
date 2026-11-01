@@ -39,3 +39,4 @@ Run `npm ci`, `npm run build`, `npm run test:smoke`, and `npm audit --omit=dev` 
 - `npm audit --omit=dev` — passed; no production dependency vulnerabilities.
 - Browser walkthrough — dashboard, local map load/autosave, Arabic node selection, cloud settings render, PDF export (map tiled across A4 pages), and selected-branch SVG export passed.
 - Live Supabase auth/RLS and Windows packaging/runtime remain unverified because no Supabase project credentials and no working local Electron runtime are available. GitHub Windows artifact must be checked before public release.
+| Desktop auth session storage | Encrypted at rest, key-bound retrieval, selective removal, corrupt-file recovery | Smoke checks pass with mocked Electron safeStorage; verify real DPAPI persistence on Windows installer |
