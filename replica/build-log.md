@@ -27,6 +27,7 @@
 
 - `npm run build` passes after the current mind map UI changes.
 - The node-search implementation passes TypeScript/Vite production build, provider smoke checks, caption parsing checks, and production dependency audit; manual interactive search and collapsed-branch navigation verification remains pending.
+- A fresh 0.4.0 Windows installer was produced locally after node search was added. The packaged-app smoke check could not launch the local build because Windows denied its AppContainer sandbox access to the workspace folder; GitHub Actions run 41299194012 is checking the packaged app on its Windows runner.
 - The browser walkthrough extracted Arabic text from a local TXT sample. PDF, DOCX, XLSX, and PPTX fixtures still need manual runtime validation. Image-only PDF OCR now supports sequential batches beyond page 10, but needs a multi-batch scanned-PDF fixture run.
 - `npm audit --omit=dev --json` reported no production dependency vulnerabilities after replacing the vulnerable `xlsx` package with `read-excel-file`.
 - Supabase cloud settings UI was rendered in the browser; it correctly asks for the user's URL and public key. A live login, database policy, and restore test is pending a Supabase project.
