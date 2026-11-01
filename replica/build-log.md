@@ -16,7 +16,7 @@
 - Added an optional Supabase account and manual cloud backup flow: email/password registration and login, password recovery, Google OAuth entry point, editable display name/avatar metadata, encrypted desktop auth-session storage, owner-filtered file listing, upload, restore-to-new-local-copy, and snapshots.
 - Added a Supabase migration for owner-only projects and version history; app settings require the owner's public/publishable key and never accept a service-role key.
 - Preserved node shapes, colors and completion state in JSON exports; split editor/media code into lazy-loaded modules to reduce the startup bundle.
-- Added vision-provider OCR for image-only PDF pages, with a visible cap of 10 scanned pages and a warning that those images are sent to the selected provider.
+- Added vision-provider OCR for image-only PDF pages in user-triggered batches of up to 10 pages; completed pages are retained during the session and skipped on retry, with provider-use disclosure.
 - Added tiled A4 PDF pages, selected-branch exports, and individual-node SVG/PNG/PDF exports while preserving full-map actions.
 - Changed Windows workflow so main branch pushes save installers as review artifacts; only version tags publish GitHub Releases.
 - Added a Windows packaged-app startup check that opens the unpacked Electron build, verifies that the dashboard rendered in the React root, and fails CI if the renderer is empty or startup hangs.
@@ -26,7 +26,7 @@
 ## Verification
 
 - `npm run build` passes after the current mind map UI changes.
-- The browser walkthrough extracted Arabic text from a local TXT sample. PDF, DOCX, XLSX, and PPTX fixtures still need manual runtime validation.
+- The browser walkthrough extracted Arabic text from a local TXT sample. PDF, DOCX, XLSX, and PPTX fixtures still need manual runtime validation. Image-only PDF OCR now supports sequential batches beyond page 10, but needs a multi-batch scanned-PDF fixture run.
 - `npm audit --omit=dev --json` reported no production dependency vulnerabilities after replacing the vulnerable `xlsx` package with `read-excel-file`.
 - Supabase cloud settings UI was rendered in the browser; it correctly asks for the user's URL and public key. A live login, database policy, and restore test is pending a Supabase project.
 - Provider and encrypted auth-storage smoke checks passed for encrypted-key redaction, zero temperature, request/token counters, audio upload formatting and timestamp response handling, encrypted session at-rest handling, key separation, and corrupt-file recovery.
@@ -38,5 +38,5 @@
 
 ## Still required for the stated full product
 
-Remaining product work includes OCR for image-only PDF files beyond the current 10-page batch, automatic YouTube transcript retrieval where supported through authorized official access, cloud background sync and conflict resolution, sharing/live collaboration, and broader edge formatting. OAuth setup and profile controls are implemented, but need live verification in the owner's Supabase/Google project. Cloud account, policy, and restore flows also need testing in a user-owned Supabase project. A clean Windows 10/11 install, microphone permission, and URI callback remain to be verified. Do not describe these as complete before the flows are verified.
+Remaining product work includes manual multi-batch OCR fixture verification, automatic YouTube transcript retrieval where supported through authorized official access, cloud background sync and conflict resolution, sharing/live collaboration, and broader edge formatting. OAuth setup and profile controls are implemented, but need live verification in the owner's Supabase/Google project. Cloud account, policy, and restore flows also need testing in a user-owned Supabase project. A clean Windows 10/11 install, microphone permission, and URI callback remain to be verified. Do not describe these as complete before the flows are verified.
 
