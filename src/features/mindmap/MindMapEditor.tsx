@@ -186,7 +186,11 @@ export default function MindMapEditor({ projectId, title, onHome }: { projectId:
       if (nodeSearch.trim()) setNotice('ما لكيت عقدة تطابق البحث.');
       return;
     }
-    const nextIndex = (searchIndex + direction + searchMatches.length) % searchMatches.length;
+    const activeIndex = searchMatches.findIndex((node) => node.id === selectedId);
+    const baseIndex = activeIndex >= 0 ? activeIndex : searchIndex;
+    const nextIndex = baseIndex < 0
+      ? direction === 1 ? 0 : searchMatches.length - 1
+      : (baseIndex + direction + searchMatches.length) % searchMatches.length;
     const target = searchMatches[nextIndex];
     setSearchIndex(nextIndex);
     setSelectedId(target.id);
@@ -200,13 +204,19 @@ export default function MindMapEditor({ projectId, title, onHome }: { projectId:
       pathIds.add(parentId);
       currentId = parentId;
     }
-    const nextNodes = nodes.map((node) => pathIds.has(node.id) && node.hidden ? { ...node, hidden: false } : node);
+    const nextNodes = nodes.map((node) => {
+      const shouldReveal = pathIds.has(node.id) && node.hidden;
+      const shouldSelect = node.id === target.id;
+      return shouldReveal || node.selected !== shouldSelect ? { ...node, hidden: shouldReveal ? false : node.hidden, selected: shouldSelect } : node;
+    });
     const nextEdges = edges.map((edge) => pathIds.has(edge.target) && pathIds.has(edge.source) && edge.hidden ? { ...edge, hidden: false } : edge);
-    if (nextNodes.some((node, index) => node !== nodes[index]) || nextEdges.some((edge, index) => edge !== edges[index])) {
+    const revealsCollapsedContent = nodes.some((node) => pathIds.has(node.id) && node.hidden)
+      || edges.some((edge) => pathIds.has(edge.source) && pathIds.has(edge.target) && edge.hidden);
+    if (revealsCollapsedContent) {
       checkpoint(nextNodes, nextEdges);
-      setNodes(withCallbacks(nextNodes));
-      setEdges(nextEdges);
     }
+    setNodes(withCallbacks(nextNodes));
+    setEdges(nextEdges);
 
     if (outlineMode) {
       requestAnimationFrame(() => {
@@ -214,9 +224,9 @@ export default function MindMapEditor({ projectId, title, onHome }: { projectId:
         row?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       });
     } else {
-      void flowInstance.current?.fitView({ nodes: [{ id: target.id }], duration: 450, padding: 0.55 });
+      requestAnimationFrame(() => void flowInstance.current?.fitView({ nodes: [{ id: target.id }], duration: 450, padding: 0.55 }));
     }
-  }, [searchMatches, searchIndex, nodeSearch, edges, nodes, outlineMode, checkpoint, setNodes, setEdges, withCallbacks]);
+  }, [searchMatches, searchIndex, selectedId, nodeSearch, edges, nodes, outlineMode, checkpoint, setNodes, setEdges, withCallbacks]);
 
   useEffect(() => {
     let active = true;
