@@ -4,10 +4,12 @@ import {
   addEdge, Background, Controls, MiniMap, ReactFlow, useEdgesState, useNodesState,
   type Connection, type Edge, type Node, type NodeProps, type ReactFlowInstance,
 } from '@xyflow/react';
-import { ArrowRight, CircleHelp, Copy, Download, Expand, FileText, FileUp, FileDown, FileImage, Home, LayoutGrid, ListTree, Plus, Printer, Redo2, Save, Scissors, Shrink, Sparkles, LoaderCircle, Trash2, Undo2 } from 'lucide-react';
+import { AlertCircle, ArrowRight, CircleHelp, Copy, Download, Expand, FileText, FileUp, FileDown, FileImage, Home, LayoutGrid, ListTree, Plus, Printer, Redo2, Save, Scissors, Shrink, Sparkles, LoaderCircle, Trash2, Undo2, X } from 'lucide-react';
 import { touchProject } from '../projects/projectStore';
 import { loadDocument, saveDocument } from '../storage/documentStore';
 import { mapFromJson } from '../ai/AIGenerator';
+
+type NodeAiAction = 'summarize' | 'rewrite' | 'translate' | 'explain' | 'brainstorm' | 'questions';
 
 type MindKind = 'branch' | 'rectangle' | 'circle' | 'diamond' | 'sticky' | 'task';
 type MindColor = 'violet' | 'blue' | 'mint' | 'amber';
@@ -136,6 +138,11 @@ export default function MindMapEditor({ projectId, title, onHome }: { projectId:
   const [outlineMode, setOutlineMode] = useState(false);
   const [notice, setNotice] = useState('');
   const [aiBusy, setAiBusy] = useState(false);
+  const [assistantOpen, setAssistantOpen] = useState(false);
+  const [assistantAction, setAssistantAction] = useState<NodeAiAction>('summarize');
+  const [assistantLanguage, setAssistantLanguage] = useState('العربية');
+  const [assistantResult, setAssistantResult] = useState('');
+  const [assistantError, setAssistantError] = useState('');
   const history = useRef<Snapshot[]>([]);
   const historyIndex = useRef(-1);
   const ready = useRef(false);
@@ -498,6 +505,81 @@ export default function MindMapEditor({ projectId, title, onHome }: { projectId:
     } finally { setAiBusy(false); }
   }, [nodes, selectedId, aiBusy, withCallbacks, checkpoint, setNodes, setEdges]);
 
+  const runNodeAssistant = useCallback(async () => {
+    const selected = nodes.find((node) => node.id === selectedId);
+    if (!selected || !window.ibraMind?.providers || aiBusy) return;
+    setAiBusy(true); setAssistantError(''); setAssistantResult('');
+    try {
+      const listed = await window.ibraMind.providers.list();
+      const enabled = (listed.providers || []).filter((provider) => provider.enabled);
+      const routeKey = assistantAction === 'translate' ? 'translation'
+        : assistantAction === 'explain' ? 'explanation'
+          : assistantAction === 'brainstorm' ? 'expansion'
+            : assistantAction === 'questions' ? 'mindMapGeneration' : 'summarization';
+      let route = '';
+      try { route = JSON.parse(localStorage.getItem('ibra-mind-ai-routing-v1') || '{}')[routeKey] || ''; } catch { route = ''; }
+      const provider = enabled.find((item) => item.id === route) || enabled.find((item) => item.isDefault) || enabled[0];
+      if (!provider) throw new Error('أضف مزوداً مفعّلاً من إعدادات الذكاء الاصطناعي أولاً.');
+      const branchLabels: string[] = [];
+      const seen = new Set([selected.id]);
+      const queue = [selected.id];
+      while (queue.length && branchLabels.length < 30) {
+        const parent = queue.shift()!;
+        for (const edge of edgesRef.current) if (edge.source === parent && !seen.has(edge.target)) {
+          seen.add(edge.target); queue.push(edge.target);
+          const child = nodesRef.current.find((node) => node.id === edge.target);
+          if (child) branchLabels.push(child.data.label.slice(0, 180));
+          if (branchLabels.length >= 30) break;
+        }
+      }
+      const context = [`الفكرة المحددة: ${selected.data.label}`, ...branchLabels.map((label) => `- ${label}`)].join('\n').slice(0, 5000);
+      const instructions: Record<NodeAiAction, string> = {
+        summarize: 'لخص الفكرة وفرعها في فقرة عربية قصيرة دقيقة لا تتجاوز 3 جمل. احفظ المصطلحات والأرقام المهمة.',
+        rewrite: 'أعد صياغة الفكرة المحددة بلغة واضحة وسليمة، مع الحفاظ على معناها ومعلوماتها. أرجع النص المعاد صياغته فقط وباختصار مناسب لعنوان عقدة.',
+        translate: `ترجم الفكرة ومحتواها إلى ${assistantLanguage.trim() || 'English'} ترجمة طبيعية دقيقة، وحافظ على الأسماء والأرقام. أرجع النص المترجم فقط.`,
+        explain: 'اشرح الفكرة المحددة بلغة مبسطة في نقاط قصيرة، مع توضيح المصطلحات دون إضافة معلومات غير مؤكدة.',
+        brainstorm: 'اقترح 5 إلى 8 أفكار فرعية عملية لهذه الفكرة. أجب بقائمة نصية، فكرة واحدة في كل سطر، بلا مقدمة أو خاتمة.',
+        questions: 'ولّد 5 إلى 8 أسئلة واضحة تساعد على دراسة الفكرة وفهمها. أجب بقائمة نصية، سؤال واحد في كل سطر، بلا مقدمة أو خاتمة.',
+      };
+      const response = await window.ibraMind.providers.complete({
+        providerId: provider.id, maxTokens: Math.min(provider.maxTokens, 2200), temperature: assistantAction === 'rewrite' || assistantAction === 'translate' ? 0.2 : 0.4,
+        messages: [
+          { role: 'system', content: `${instructions[assistantAction]} لا تذكر أنك ذكاء اصطناعي ولا تضف Markdown غير ضروري.` },
+          { role: 'user', content: context },
+        ],
+      });
+      if (!response.ok || !response.text?.trim()) throw new Error(response.error || 'لم يرجع المزود نتيجة قابلة للاستخدام.');
+      setAssistantResult(response.text.trim().slice(0, 4000));
+    } catch (failure) { setAssistantError(failure instanceof Error ? failure.message : 'تعذر تنفيذ إجراء المساعد.'); }
+    finally { setAiBusy(false); }
+  }, [nodes, selectedId, aiBusy, assistantAction, assistantLanguage]);
+
+  const applyAssistantResult = useCallback((mode: 'replace' | 'children') => {
+    const result = assistantResult.trim();
+    if (!result || !selectedId) return;
+    const latestNodes = nodesRef.current;
+    const latestEdges = edgesRef.current;
+    const selected = latestNodes.find((node) => node.id === selectedId);
+    if (!selected) { setAssistantError('العقدة المحددة لم تعد موجودة؛ لم تتغير الخريطة.'); return; }
+    if (mode === 'replace') {
+      const nextNodes = withCallbacks(latestNodes.map((node) => node.id === selectedId ? { ...node, data: { ...node.data, label: result.slice(0, 240) } } : node));
+      checkpoint(nextNodes, latestEdges); setNodes(nextNodes);
+      setNotice(`تم تحديث عنوان العقدة باستخدام نتيجة ${assistantAction === 'translate' ? 'الترجمة' : 'المساعد'}.`);
+    } else {
+      const ideas = result.split(/\r?\n/).map((line) => line.replace(/^\s*(?:[-*•]+|\d+[.)])\s*/, '').trim()).filter(Boolean).slice(0, 10);
+      if (!ideas.length) { setAssistantError('لا توجد أفكار نصية لإضافتها.'); return; }
+      const addedNodes: MindNodeType[] = ideas.map((label, index) => ({
+        id: `ai-note-${crypto.randomUUID()}`, type: 'mind', position: { x: selected.position.x + 300, y: selected.position.y + (index - (ideas.length - 1) / 2) * 105 },
+        data: { label: label.slice(0, 240), onLabelChange: () => undefined },
+      }));
+      const addedEdges = addedNodes.map((node) => ({ id: `edge-${crypto.randomUUID()}`, source: selectedId, target: node.id, type: 'smoothstep' }));
+      const nextNodes = withCallbacks([...latestNodes, ...addedNodes]); const nextEdges = [...latestEdges, ...addedEdges];
+      checkpoint(nextNodes, nextEdges); setNodes(nextNodes); setEdges(nextEdges);
+      setNotice(`أُضيفت ${addedNodes.length} فكرة كفروع تابعة.`);
+    }
+    setAssistantOpen(false); setAssistantResult('');
+  }, [assistantResult, selectedId, assistantAction, withCallbacks, checkpoint, setNodes, setEdges]);
+
   const childrenOf = useCallback((id: string) => edges.filter((edge) => edge.source === id).map((edge) => edge.target), [edges]);
   const renderOutline = (id: string, depth: number, path: Set<string>): ReactNode => {
     const node = nodes.find((item) => item.id === id);
@@ -558,10 +640,11 @@ export default function MindMapEditor({ projectId, title, onHome }: { projectId:
     <header className="editor-topbar"><button className="editor-brand" onClick={onHome}><span className="brand-mark"><ArrowRight size={18}/></span><span>IBRA <b>MIND</b></span></button><div className="editor-title"><small>خريطتي الذهنية</small><b>{title}</b></div><div className="editor-save"><Save size={15}/>{savedAt ? `حُفظ تلقائياً · ${savedAt}` : 'حفظ تلقائي مفعّل'}</div><button className="editor-button subtle" onClick={exportMap}><Download size={15}/> تصدير JSON</button><button className="editor-button subtle" onClick={onHome}><Home size={15}/> الرئيسية</button></header>
     <div className="editor-toolbar"><button className="editor-button primary" onClick={() => addTopic('child')}><Plus size={16}/> فرع تابع <kbd>Tab</kbd></button><button className="editor-button" onClick={() => addTopic('sibling')} disabled={!selectedId || selectedId === 'root'}><Plus size={15}/> فرع بجانبه</button><button className="editor-button" onClick={duplicateSelected} disabled={!selectedId || selectedId === 'root'}><Copy size={14}/> تكرار</button><button className="editor-button" onClick={() => { copySelected(); removeSelected(); }} disabled={!selectedId || selectedId === 'root'}><Scissors size={14}/> قص</button><button className="editor-button" onClick={pasteBranch} disabled={!clipboardReady}><Copy size={14}/> لصق</button><button className="editor-button" onClick={() => removeSelected()} disabled={!selectedId || selectedId === 'root'}><Trash2 size={15}/> حذف</button><span className="toolbar-divider"/><button className="editor-icon-button" aria-label="تراجع" onClick={() => restoreHistory(-1)}><Undo2 size={17}/></button><button className="editor-icon-button" aria-label="إعادة" onClick={() => restoreHistory(1)}><Redo2 size={17}/></button><button className="editor-button" onClick={autoLayout}><LayoutGrid size={14}/> توزيع تلقائي</button><button className="editor-button" onClick={()=>setOutlineMode(!outlineMode)}>{outlineMode?<LayoutGrid size={14}/>:<ListTree size={14}/>} {outlineMode?'عرض الخريطة':'عرض القائمة'}</button><button className="editor-button" onClick={exportMarkdown}><FileText size={14}/> Markdown</button><button className="editor-button" onClick={()=>importInputRef.current?.click()}><FileUp size={14}/> استيراد JSON</button><input ref={importInputRef} hidden type="file" accept="application/json,.json" aria-label="ملف خريطة JSON" onChange={(event)=>{importMap(event.target.files?.[0]);event.currentTarget.value=''}}/><button className="editor-button" onClick={()=>window.print()}><Printer size={14}/> طباعة</button><span className="editor-help"><CircleHelp size={15}/> حدّد عقدة ثم اختر الإجراء. اسحب العقد لترتيبها.</span></div>
     {!outlineMode && <div className="editor-toolbar export-toolbar" aria-label="تصدير الخريطة"><span>تصدير كامل الخريطة:</span><button className="editor-button" title="تصدير PNG عالي الدقة" onClick={()=>void exportVisual('png')}><FileImage size={14}/> PNG</button><button className="editor-button" title="تصدير SVG" onClick={()=>void exportVisual('svg')}><FileImage size={14}/> SVG</button><button className="editor-button" title="تصدير PDF متعدد الصفحات" onClick={()=>void exportVisual('pdf')}><FileDown size={14}/> PDF</button><span className="export-selected-label">العقدة المحددة وفروعها:</span><span className="export-selected-label">العقدة وحدها:</span><button className="editor-button" disabled={!selectedId} title="تصدير العقدة PNG" onClick={()=>void exportVisual("png",true,true)}><FileImage size={14}/> PNG</button><button className="editor-button" disabled={!selectedId} title="تصدير العقدة SVG" onClick={()=>void exportVisual("svg",true,true)}><FileImage size={14}/> SVG</button><button className="editor-button" disabled={!selectedId} title="تصدير العقدة PDF" onClick={()=>void exportVisual("pdf",true,true)}><FileDown size={14}/> PDF</button><button className="editor-button" disabled={!selectedId} title="تصدير التحديد PNG" onClick={()=>void exportVisual('png',true)}><FileImage size={14}/> PNG</button><button className="editor-button" disabled={!selectedId} title="تصدير التحديد SVG" onClick={()=>void exportVisual('svg',true)}><FileImage size={14}/> SVG</button><button className="editor-button" disabled={!selectedId} title="تصدير التحديد PDF" onClick={()=>void exportVisual('pdf',true)}><FileDown size={14}/> PDF</button></div>}
-    {selectedId && <div className="editor-toolbar node-style-toolbar" aria-label="تنسيق العقدة المحددة"><span>تنسيق العقدة</span><select aria-label="شكل العقدة" value={nodes.find((node)=>node.id===selectedId)?.data.kind||'branch'} onChange={(event)=>setSelectedStyle({kind:event.target.value as MindKind})}><option value="branch">متفرعة</option><option value="rectangle">مستطيل</option><option value="circle">دائرية</option><option value="diamond">معيّن</option><option value="sticky">ملاحظة</option><option value="task">مهمة</option></select><select aria-label="لون العقدة" value={nodes.find((node)=>node.id===selectedId)?.data.color||'violet'} onChange={(event)=>setSelectedStyle({color:event.target.value as MindColor})}><option value="violet">بنفسجي</option><option value="blue">أزرق</option><option value="mint">أخضر</option><option value="amber">ذهبي</option></select><button className="editor-button" onClick={()=>void expandWithAi()} disabled={aiBusy}>{aiBusy?<LoaderCircle size={14} className="spin"/>:<Sparkles size={14}/>} توسيع بالذكاء</button><button className="editor-button" onClick={()=>toggleBranch(false)}><Shrink size={14}/> طي الفروع</button><button className="editor-button" onClick={()=>toggleBranch(true)}><Expand size={14}/> توسيع الفروع</button></div>}
+    {selectedId && <div className="editor-toolbar node-style-toolbar" aria-label="تنسيق العقدة المحددة"><span>تنسيق العقدة</span><select aria-label="شكل العقدة" value={nodes.find((node)=>node.id===selectedId)?.data.kind||'branch'} onChange={(event)=>setSelectedStyle({kind:event.target.value as MindKind})}><option value="branch">متفرعة</option><option value="rectangle">مستطيل</option><option value="circle">دائرية</option><option value="diamond">معيّن</option><option value="sticky">ملاحظة</option><option value="task">مهمة</option></select><select aria-label="لون العقدة" value={nodes.find((node)=>node.id===selectedId)?.data.color||'violet'} onChange={(event)=>setSelectedStyle({color:event.target.value as MindColor})}><option value="violet">بنفسجي</option><option value="blue">أزرق</option><option value="mint">أخضر</option><option value="amber">ذهبي</option></select><button className="editor-button" onClick={()=>{setAssistantError('');setAssistantResult('');setAssistantOpen(true)}} disabled={aiBusy}><Sparkles size={14}/> مساعد الذكاء</button><button className="editor-button" onClick={()=>void expandWithAi()} disabled={aiBusy}>{aiBusy?<LoaderCircle size={14} className="spin"/>:<Sparkles size={14}/>} توسيع بالذكاء</button><button className="editor-button" onClick={()=>toggleBranch(false)}><Shrink size={14}/> طي الفروع</button><button className="editor-button" onClick={()=>toggleBranch(true)}><Expand size={14}/> توسيع الفروع</button></div>}
     {outlineMode ? <section className="outline-canvas" aria-label="مخطط الخريطة الهيكلي"><ul>{(nodes.find((node)=>node.id==='root')??nodes[0])&&renderOutline((nodes.find((node)=>node.id==='root')??nodes[0]).id,0,new Set())}</ul></section> : <section className="canvas-wrap" aria-label="لوحة الخريطة الذهنية"><ReactFlow nodes={nodes} edges={edges} nodeTypes={nodeTypes} onInit={(instance)=>{flowInstance.current=instance}} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} onConnect={connect} onNodeClick={(_, node) => setSelectedId(node.id)} onPaneClick={() => setSelectedId(null)} onNodeDragStop={() => checkpoint(nodesRef.current, edgesRef.current)} fitView fitViewOptions={{ padding: 0.3 }} minZoom={0.2} maxZoom={2.2} proOptions={{ hideAttribution: true }}><Background color="#dbe0ec" gap={24} size={1}/><Controls position="bottom-left"/><MiniMap position="bottom-right" zoomable pannable nodeColor="#8d79ee"/></ReactFlow></section>}
     <footer className="editor-footer"><span>{nodes.length} عقدة · {edges.length} اتصال</span><span>Tab فرع تابع · Ctrl+D تكرار · Ctrl+C / X / V نسخ · Delete حذف · Ctrl+Z تراجع</span></footer>
     {notice&&<div className="toast" role="status">{notice}<button onClick={()=>setNotice('')}>حسناً</button></div>}
+    {assistantOpen&&<div className="dialog-backdrop ai-backdrop" onMouseDown={(event)=>{if(event.target===event.currentTarget&&!aiBusy)setAssistantOpen(false)}}><section className="dialog-card ai-dialog" role="dialog" aria-modal="true" aria-labelledby="node-ai-title"><button className="dialog-close" aria-label="إغلاق" disabled={aiBusy} onClick={()=>setAssistantOpen(false)}><X size={18}/></button><div className="dialog-symbol ai-symbol"><Sparkles size={22}/></div><h2 id="node-ai-title">مساعد العقدة المحددة</h2><p>يُرسل نص العقدة وفروعها إلى المزود المحدد لمسار المهمة. عاين النتيجة واختر كيف تضيفها للخريطة.</p><label className="ai-provider-label">الإجراء<select value={assistantAction} disabled={aiBusy} onChange={(event)=>{setAssistantAction(event.target.value as NodeAiAction);setAssistantResult('');setAssistantError('')}}><option value="summarize">تلخيص الفرع</option><option value="rewrite">إعادة صياغة العنوان</option><option value="translate">ترجمة الفرع</option><option value="explain">شرح مبسّط</option><option value="brainstorm">اقتراح أفكار فرعية</option><option value="questions">توليد أسئلة دراسة</option></select></label>{assistantAction==='translate'&&<label className="ai-provider-label">لغة الترجمة<input value={assistantLanguage} maxLength={50} onChange={(event)=>setAssistantLanguage(event.target.value)} placeholder="مثال: العربية أو English"/></label>}<div className="document-preview"><b>العقدة: {nodes.find((node)=>node.id===selectedId)?.data.label}</b></div><div className="dialog-actions"><button className="editor-button primary" onClick={()=>void runNodeAssistant()} disabled={aiBusy}>{aiBusy?<LoaderCircle size={15} className="spin"/>:<Sparkles size={15}/>} {aiBusy?'جارٍ العمل':'إنشاء نتيجة'}</button></div>{assistantError&&<div className="provider-error" role="alert"><AlertCircle size={16}/>{assistantError}</div>}{assistantResult&&<><label className="ai-topic-label">معاينة النتيجة<textarea dir="auto" rows={7} maxLength={4000} value={assistantResult} onChange={(event)=>setAssistantResult(event.target.value)}/></label><div className="dialog-actions"><button className="editor-button" onClick={()=>void (navigator.clipboard?.writeText(assistantResult)??Promise.reject()).then(()=>setAssistantError('نُسخت النتيجة إلى الحافظة.')).catch(()=>setAssistantError('تعذر النسخ؛ حدد النص وانسخه يدوياً.'))}><Copy size={14}/> نسخ</button><button className="editor-button" onClick={()=>applyAssistantResult('replace')}>استبدال عنوان العقدة</button><button className="editor-button primary" onClick={()=>applyAssistantResult('children')}>إضافة كفروع</button></div></>}</section></div>}
   </main>;
 }
 
