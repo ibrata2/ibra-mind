@@ -46,4 +46,5 @@ Remaining product work includes manual multi-batch OCR fixture verification, aut
 - Added a selected-node AI assistant for summarize, rewrite, translate, explain, brainstorm, and study questions. It uses task routing, includes branch context, previews editable output, and can replace the selected label or append child nodes with undo support.
 - GitHub Actions run 41295377567 passed on Windows, confirmed the packaged dashboard renderer, and saved the installer review artifact (149 MB; expires 2026-12-01).
 - GitHub Actions run 41296910241 passed after adding Custom REST providers; provider/security smoke checks, Windows installer build, packaged renderer verification, and installer artifact upload all succeeded.
+- GitHub Actions run 41297671955 passed after adding the selected-node AI assistant; Windows installer build, packaged dashboard renderer, and review artifact upload succeeded. Provider-backed assistant actions still need a live-key click-through.
 
