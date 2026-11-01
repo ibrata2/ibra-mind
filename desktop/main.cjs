@@ -51,7 +51,7 @@ function createWindow() {
   mainWindow.webContents.once('did-finish-load', () => {
     deliverAuthUrl();
     if (process.env.IBRA_MIND_SMOKE !== '1') return;
-    void mainWindow.webContents.executeJavaScript('(()=>{const root=document.getElementById("root");return Boolean(root&&root.children.length&&root.innerText.includes("IBRA MIND"));})()')
+    void mainWindow.webContents.executeJavaScript('new Promise(resolve=>{const started=Date.now();const check=()=>{const root=document.getElementById("root");if(root&&root.children.length&&root.innerText.includes("IBRA MIND"))return resolve(true);if(Date.now()-started>=30000)return resolve(false);setTimeout(check,100);};check();})')
       .then((loaded) => {
         process.stdout.write(loaded ? 'IBRA_MIND_RENDERER_OK\n' : 'IBRA_MIND_RENDERER_EMPTY\n');
         if (!loaded) process.exitCode = 1;
@@ -59,6 +59,10 @@ function createWindow() {
       })
       .catch((error) => { process.stderr.write(`IBRA_MIND_RENDERER_ERROR ${error.message}\n`); process.exitCode = 1; app.quit(); });
   });
+  if (process.env.IBRA_MIND_SMOKE === '1') {
+    mainWindow.webContents.on('console-message', (_event, details) => process.stderr.write(`RENDERER_CONSOLE ${details.message}\n`));
+    mainWindow.webContents.on('did-fail-load', (_event, code, description, url) => process.stderr.write(`RENDERER_LOAD_FAILED ${code} ${description} ${url}\n`));
+  }
   if (!app.isPackaged) {
     mainWindow.loadURL('http://127.0.0.1:5173');
   } else {
