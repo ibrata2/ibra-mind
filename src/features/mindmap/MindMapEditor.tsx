@@ -479,13 +479,17 @@ export default function MindMapEditor({ projectId, title, onHome }: { projectId:
       });
       if (!completion.ok || !completion.text) throw new Error(completion.error || 'تعذر توسيع الفكرة.');
       const generated = mapFromJson(JSON.parse(completion.text.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '')));
+      const latestNodes = nodesRef.current;
+      const latestEdges = edgesRef.current;
+      const currentSelected = latestNodes.find((node) => node.id === selectedId);
+      if (!currentSelected) throw new Error('العقدة المحددة لم تعد موجودة؛ لم تُغيّر الخريطة.');
       const idMap = new Map(generated.nodes.map((node) => [node.id, node.id === 'root' ? selected.id : `ai-${crypto.randomUUID()}`]));
       const addedNodes = generated.nodes.filter((node) => node.id !== 'root').map((node) => ({
-        ...node, id: idMap.get(node.id)!, position: { x: selected.position.x + node.position.x, y: selected.position.y + node.position.y },
+        ...node, id: idMap.get(node.id)!, position: { x: currentSelected.position.x + node.position.x, y: currentSelected.position.y + node.position.y },
       })) as MindNodeType[];
       const addedEdges = generated.edges.map((edge) => ({ ...edge, id: `edge-${crypto.randomUUID()}`, source: idMap.get(edge.source)!, target: idMap.get(edge.target)! }));
-      const nextNodes = withCallbacks([...nodes, ...addedNodes]);
-      const nextEdges = [...edges, ...addedEdges];
+      const nextNodes = withCallbacks([...latestNodes, ...addedNodes]);
+      const nextEdges = [...latestEdges, ...addedEdges];
       checkpoint(nextNodes, nextEdges);
       setNodes(nextNodes); setEdges(nextEdges);
       setNotice(`أُضيفت ${addedNodes.length} عقدة إلى «${selected.data.label}» باستخدام ${provider.name}.`);
