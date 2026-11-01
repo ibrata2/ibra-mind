@@ -4,7 +4,7 @@
 
 - Replaced the starter dashboard dataset with persisted local projects and per-project IndexedDB documents.
 - Added mind map, flowchart, and whiteboard editors with project-specific autosave.
-- Added mind map branch operations, undo/redo, outline, auto arrangement, JSON/Markdown export, import, print, node shapes/colors/task state, and branch collapse/expand.
+- Added mind map branch operations, undo/redo, outline, auto arrangement, JSON/Markdown export, import, print, node shapes/colors/task state, branch collapse/expand, and AI expansion of a selected node using task-specific provider routing.
 - Added flowchart shapes and connections; added whiteboard object editing and arrangement tools.
 - Added Electron main-process provider IPC, Windows safeStorage encryption, OpenAI-compatible/Gemini/Anthropic protocols, connectivity checks, counters, task routing, and schema-checked AI map generation.
 - Added local PDF/DOCX/PPTX/XLSX/TXT/Markdown/CSV text extraction, size and output limits, chunked AI document analysis, and multimodal image-to-map requests for vision-capable providers.
@@ -39,4 +39,6 @@
 ## Still required for the stated full product
 
 Remaining product work includes manual multi-batch OCR fixture verification, automatic YouTube transcript retrieval where supported through authorized official access, cloud background sync and conflict resolution, sharing/live collaboration, and broader edge formatting. OAuth setup and profile controls are implemented, but need live verification in the owner's Supabase/Google project. Cloud account, policy, and restore flows also need testing in a user-owned Supabase project. A clean Windows 10/11 install, microphone permission, and URI callback remain to be verified. Do not describe these as complete before the flows are verified.
+
+- The editor's AI expansion action requests a schema-checked submap from the configured expansion provider, appends it to the selected node, and records it in undo history.
 
