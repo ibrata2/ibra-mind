@@ -50,3 +50,4 @@ child.on('exit', (code) => {
     process.exitCode = 1;
   }
 });
+
