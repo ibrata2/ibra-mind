@@ -27,7 +27,7 @@ Run `npm run test:smoke` for provider and encrypted-session checks. Windows CI a
 ## Current working capabilities
 
 - Local dashboard with project creation, recent/favorite filters, search, grid/list views, and delete/rename.
-- Mind map: editable and connectable nodes, child/sibling creation, copy/cut/paste/duplicate, undo/redo, keyboard shortcuts, drag placement, auto layout, outline mode, collapse/expand, node shapes/colors/task completion, IndexedDB autosave, JSON import/export, Markdown export, and print.
+- Mind map: editable and connectable nodes, child/sibling creation, copy/cut/paste/duplicate, undo/redo, keyboard shortcuts, drag placement, auto layout, outline mode, collapse/expand, Arabic-aware node search with result navigation and automatic reveal of collapsed paths, node shapes/colors/task completion, selectable edge path/color/width/dash/arrow/label styling, IndexedDB autosave, JSON import/export, Markdown export, and print.
 - Flowcharts: connected shapes, text editing, connect, auto layout, delete, JSON export, and IndexedDB autosave.
 - Whiteboards: text, notes, shapes, image insertion, connectors, multi-select, resize, group/ungroup, lock, layer order, JSON export, and IndexedDB autosave.
 - AI provider configuration in the Windows app: encrypted API key and custom-header storage through Windows safe storage; OpenAI-compatible presets, native Gemini/Anthropic protocols, and custom REST request templates with response mapping and configurable API-key header; connection tests, model discovery where supported, usage/error counts, task routing, and validated AI map generation.
