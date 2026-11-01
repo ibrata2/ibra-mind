@@ -8,6 +8,10 @@
   "type": "module",
   "main": "desktop/main.cjs",
   "scripts": {
+    "prepare:icon": "node scripts/prepare-icon.cjs",
+    "predev": "npm run prepare:icon",
+    "prebuild": "npm run prepare:icon",
+    "predesktop:dev": "npm run prepare:icon",
     "dev": "vite --configLoader runner",
     "build": "tsc -b && vite build --configLoader runner",
     "test:smoke": "node tests/provider-smoke.cjs",
@@ -56,6 +60,7 @@
       "dist/**/*",
       "desktop/**/*",
       "assets/**/*",
+      "!assets/*.base64",
       "package.json"
     ],
     "win": {
