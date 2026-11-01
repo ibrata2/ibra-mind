@@ -15,6 +15,7 @@ Run `npm ci`, `npm run build`, `npm run test:smoke`, `npm run test:captions`, an
 ## Other editors and local data
 
 - Flowchart: add supported shapes, edit labels, connect/rearrange, save, reload, and JSON-export.
+- Flowchart AI: generate from an Arabic and English process description, confirm nodes and labeled edges render and autosave without replacing existing shapes; verify malformed model output reports an error without changing the diagram.
 - Whiteboard: add text/sticky/shapes/images, resize, select/group/lock/reorder, save, reload, JSON-export.
 - Close/reopen each workspace and verify its local document remains available.
 
