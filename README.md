@@ -26,7 +26,7 @@ Run `npm run test:smoke` for provider and encrypted-session checks. Windows CI a
 
 ## Current working capabilities
 
-- Local dashboard with project creation, recent/favorite filters, search, grid/list views, and delete/rename.
+- Local dashboard with project creation, recent/favorite filters, title search, cross-project node-content search with direct project opening, grid/list views, and delete/rename.
 - Mind map: editable and connectable nodes, child/sibling creation, copy/cut/paste/duplicate, undo/redo, keyboard shortcuts, drag placement, auto layout, outline mode, collapse/expand, Arabic-aware node search with result navigation and automatic reveal of collapsed paths, node shapes/colors/task completion, selectable edge path/color/width/dash/arrow/label styling, IndexedDB autosave, JSON import/export, Markdown export, and print.
 - Flowcharts: connected shapes, text editing, connect, auto layout, delete, JSON export, and IndexedDB autosave.
 - Whiteboards: text, notes, shapes, image insertion, connectors, multi-select, resize, group/ungroup, lock, layer order, JSON export, and IndexedDB autosave.
