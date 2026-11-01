@@ -34,6 +34,7 @@ Run `npm ci`, `npm run build`, `npm run test:smoke`, `npm run test:captions`, an
 ## Accounts and cloud
 
 - In a test-owned Supabase project, apply the included SQL migration; confirm RLS denies access to another account.
+- Edit one project differently in two sessions; upload the first, then attempt the second. Confirm a keep-both conflict prompt appears, each choice preserves both contents, and a stale concurrent RPC is rejected. Verify the old cloud content remains in version history after an explicit matching-version update.
 - Test registration, confirmation through `ibramind://auth`, sign-in/out, password reset callback, manual backup, history listing, restore to separate local copy, and empty/missing-table/error handling.
 - Confirm local-only mode works with cloud settings empty. Test cloud key is public/publishable, and reject never store a service-role key.
 - Verify multi-device manual backup/restore. Background sync, conflict resolution and collaboration are not implemented, so do not test or advertise them as available.
@@ -50,4 +51,6 @@ Run `npm ci`, `npm run build`, `npm run test:smoke`, `npm run test:captions`, an
 - GitHub Actions run 41295377567 — passed on Windows; packaged dashboard renderer passed and installer review artifact was saved. This smoke check does not exercise flowchart generation with an external AI credential.
 - `npm run test:smoke` now covers non-OpenAI custom REST request variables, x-api-key auth, nested text/token mapping, rejection of unsafe mapping paths, and secret redaction. GitHub Actions run 41296910241 passed including the packaged dashboard and installer artifact.
 - `npm run build` passed with the node AI assistant. GitHub Actions run 41297671955 passed the Windows installer build and packaged dashboard renderer. The assistant's real provider-backed summarize/rewrite/translate/explain/brainstorm/question interactions remain a manual credentialed check.
+
+- Cloud conflict handling is implemented but not yet run against Supabase. Run the two-session conflict, stale RPC, and snapshot-history scenario above after applying the migration.
 
