@@ -1,6 +1,6 @@
 area,feature,priority,status,evidence_or_gap
 Dashboard,Create and open local projects,must,implemented,App project store and editor navigation
-Dashboard,Search projects,must,implemented,Title search on dashboard
+Dashboard,Search projects and node content,must,implemented,"Search project titles and locally saved node text across maps, flowcharts, and whiteboards; open a matching project"
 Mind map,Search nodes and navigate results,must,implemented,"Search Arabic or English node titles; cycle through matches; focus the canvas or scroll outline; reveal collapsed ancestors"
 Dashboard,Favorites and recent views,should,implemented,Project filters and local metadata
 Mind map,Edit nodes and create branch/sibling,must,implemented,React Flow canvas editor
